@@ -26,7 +26,7 @@ export default {
     database: {
         url: "mongodb://mongo:27017",
         options: {
-            dbName: "marble-football-test-db",
+            dbName: "soccer-pingoal-test-db",
             useNewUrlParser: true,
             useUnifiedTopology: true,
             auto_reconnect: true,
@@ -34,7 +34,7 @@ export default {
     },
     sentry: {
         sentryUrl: "https://3711f3082699411a8716a3221ca1fd9e@sentry.lumigame.com/89",
-        logIdentifier: "MarbleFootBall-integration-test-ci",
+        logIdentifier: "SoccerPinGoal-integration-test-ci",
         env: "LOCAL",
     },
     authenticateSettings: {
@@ -62,9 +62,5 @@ export default {
         system: "SG",
         enabled: true,
         endpoint: "http://10.10.50.69:4318/v1/traces",
-    },
-    tournament: {
-        code: "SEAOC",
-        teams: ["BRN", "KHM", "IDN", "LAO", "MYS", "PHL", "SGP", "THA", "TLS", "VNM", "JPN", "KOR", "CHN", "TWN", "HKG", "IND"],
     },
 };

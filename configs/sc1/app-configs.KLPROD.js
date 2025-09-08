@@ -24,7 +24,7 @@ export default {
     },
     enabledLogs: true,
     database: {
-        url: "mongodb://lmn_backend:M7K4ttH%2AtZ3ml%3F%29%7CA%5DjN4%3FLBhwF%266IO%3C@10.146.34.26:39110,10.146.34.27:39110,10.146.34.30:39110,10.146.34.28:39110/?replicaSet=SabaMain&appName=MarbleFootBall",
+        url: "mongodb://lmn_backend:M7K4ttH%2AtZ3ml%3F%29%7CA%5DjN4%3FLBhwF%266IO%3C@10.146.34.26:39110,10.146.34.27:39110,10.146.34.30:39110,10.146.34.28:39110/?replicaSet=SabaMain&appName=SoccerPinGoal",
         options: {
             dbName: "minigame",
             useNewUrlParser: true,
@@ -34,7 +34,7 @@ export default {
     },
     sentry: {
         sentryUrl: "http://58fc00e79ab34a3bab04a79038760cb8@sentry-scklprod-ovs.ops-klprod.gamora.prod/8",
-        logIdentifier: "MarbleFootball2",
+        logIdentifier: "SoccerPinGoal",
         env: "PROD",
     },
     authenticateSettings: {
@@ -62,18 +62,9 @@ export default {
         enabled: true,
         endpoint: "http://jaeger-collector-sc.ops-klprod.gamora.prod:32318/v1/traces",
     },
-
-    liveStreamServer: "https://d10r8t0fxmjzn1.cloudfront.net/114/",
     gameResultSettings: {
         baseUrl: "http://l1-game-result-klprod-service:5000",
         id: "Game Service",
         key: "a9c83674-3d96-4b32-a431-142e3fd376fe",
-    },
-    proxyServer: {
-        enabled: true,
-        url: "http://iiiusqd.gamora.prod:8801",
-    },
-    cache: {
-        ttl: 1000 * 60 * 5,
     },
 };

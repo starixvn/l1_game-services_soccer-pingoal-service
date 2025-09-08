@@ -24,7 +24,7 @@ export default {
     },
     enabledLogs: true,
     database: {
-        url: "mongodb://lmn_backend:LmnBackend@10.10.50.12:39200,10.10.50.13:39200,10.10.50.14:39200/?replicaSet=L2Local&appName=marblefootball",
+        url: "mongodb://lmn_backend:LmnBackend@10.10.50.12:39200,10.10.50.13:39200,10.10.50.14:39200/?replicaSet=L2Local&appName=soccerpingoal",
         options: {
             dbName: "minigame",
             useNewUrlParser: true,
@@ -34,7 +34,7 @@ export default {
     },
     sentry: {
         sentryUrl: "https://acb36eb835d948d68c1aad9873754d51@sentry.lumigame.com/27",
-        logIdentifier: "MarbleFootball2",
+        logIdentifier: "SoccerPinGoal",
         env: "LOCAL",
     },
     authenticateSettings: {
@@ -63,17 +63,9 @@ export default {
         enabled: true,
         endpoint: "http://10.10.50.69:4318/v1/traces",
     },
-    liveStreamServer: "https://d1aof1lwumql9k.cloudfront.net/114_STAGING/",
     gameResultSettings: {
         baseUrl: "http://l2-game-result-local-service:5000",
         id: "Game Service",
         key: "b396d3e4-c81d-4c5c-8100-94a8b330f12a",
-    },
-    proxyServer: {
-        enabled: false,
-        url: "",
-    },
-    cache: {
-        ttl: 1000 * 60 * 5,
     },
 };

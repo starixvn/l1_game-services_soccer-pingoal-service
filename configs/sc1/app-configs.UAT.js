@@ -24,7 +24,7 @@ export default {
     },
     enabledLogs: true,
     database: {
-        url: "mongodb://lmn_backend:LmnBackend%4022027@10.99.99.53:39120,10.99.99.54:39120,10.99.99.188:39120,10.99.99.187:39120/?replicaSet=SabaUAT&appName=marblefootball2",
+        url: "mongodb://lmn_backend:LmnBackend%4022027@10.99.99.53:39120,10.99.99.54:39120,10.99.99.188:39120,10.99.99.187:39120/?replicaSet=SabaUAT&appName=soccerpingoal",
         options: {
             dbName: "minigame",
             useNewUrlParser: true,
@@ -34,7 +34,7 @@ export default {
     },
     sentry: {
         sentryUrl: "http://52368c4019044019885440599c180bda@10.2.190.51:9009/24",
-        logIdentifier: "MarbleFootBall2",
+        logIdentifier: "SoccerPinGoal",
         env: "UAT",
     },
     authenticateSettings: {
@@ -62,18 +62,9 @@ export default {
         enabled: true,
         endpoint: "http://10.2.190.51:4318/v1/traces",
     },
-
-    liveStreamServer: "https://d10r8t0fxmjzn1.cloudfront.net/114/",
     gameResultSettings: {
         baseUrl: "http://l1-game-result-uat-service:5000",
         id: "Game Service",
         key: "906db6ee-b64b-4173-8c82-410f8509764d",
-    },
-    proxyServer: {
-        enabled: true,
-        url: "http://lisasqd.nebula.prod:8801",
-    },
-    cache: {
-        ttl: 1000 * 60 * 5,
     },
 };

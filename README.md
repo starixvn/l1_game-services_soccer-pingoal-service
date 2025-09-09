@@ -1,1 +1,1 @@
-# Pingoal
+# soccer-pingoal-service

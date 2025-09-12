@@ -4,13 +4,14 @@ import { Core } from "sc-game-base";
 import GameDefinition from "./game-definition";
 import ContainerRegistry from "./container-registry";
 import { Table } from "sc-game-base";
+import { resultHelper } from "./helpers";
 
 const run = async () => {
     const definition = new GameDefinition(
         gameSettings as any,
-        () => {},
-        () => {},
-        () => {}
+        resultHelper.generateResult,
+        resultHelper.getSettlementResult,
+        resultHelper.generateRawResultForHash
     );
 
     const gameData = new Table.TableGameData(gameSettings.durations.wholeRound);

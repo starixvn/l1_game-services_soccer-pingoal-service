@@ -10,7 +10,7 @@ include:
     ref: main
     file: "luminet.gitlab-ci.yml"
 
-.integration_test_js: #skip integration test
+integration_test_js:
   before_script:
     - cp ./src/app-configs.IGT.ts ./src/app-configs.IGT.original.ts
     - cp ./configs/app-configs.IGT.ts ./src/app-configs.IGT.ts

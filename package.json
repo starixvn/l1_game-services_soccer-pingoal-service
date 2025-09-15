@@ -12,10 +12,10 @@
     "type": "module",
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
-        "test": "jest --testPathPattern=tests/unit-tests/ ",
-        "test-coverage": "jest --collect-coverage --testPathPattern=tests/unit-tests/",
+        "test": "jest --testPathPatterns=tests/unit-tests/ ",
+        "test-coverage": "jest --collect-coverage --testPathPatterns=tests/unit-tests/",
         "integration-test": "",
-        "integration-test:skip": "npm run build && jest --config ./jest.integration-test.config.cjs --testPathPattern=tests/integration-tests/ --detectOpenHandles --forceExit",
+        "integration-test:skip": "npm run build && jest --config ./jest.integration-test.config.cjs --testPathPatterns=tests/integration-tests/ --detectOpenHandles --forceExit",
         "dev": "cross-env NODE_ENV=development tsx watch ./src/app.ts",
         "dev-build": "nodemon --experimental-loader=extensionless --watch ./build ./build/app.js",
         "reg": "npm set registry http://npm.lumigame.com"

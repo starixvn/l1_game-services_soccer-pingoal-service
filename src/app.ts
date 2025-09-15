@@ -1,9 +1,8 @@
+import { Core, Table } from "sc-game-base";
 import appConfigs from "./app-configs";
-import gameSettings from "./game-settings";
-import { Core } from "sc-game-base";
-import GameDefinition from "./game-definition";
 import ContainerRegistry from "./container-registry";
-import { Table } from "sc-game-base";
+import GameDefinition from "./game-definition";
+import gameSettings from "./game-settings";
 import { resultHelper } from "./helpers";
 
 const run = async () => {

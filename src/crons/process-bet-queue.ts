@@ -7,7 +7,7 @@ interface BetPayload {
     betChoice: string;
     freeBet: boolean;
     roundId: number; // This property for multiple-players game only
-    mode: String;
+    mode: string;
     receivedTime: Date;
     redTunnel: number;
     blueTunnel: number;

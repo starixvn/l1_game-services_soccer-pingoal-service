@@ -1,5 +1,13 @@
-import crypto from "crypto";
-import { secureShuffle, secureWeightedPick } from "sc-core-rng";
+/**
+ * Recommend library for random is: sc-core-rng
+ *
+ * import { secureShuffle, secureWeightedPick } from "sc-core-rng";
+ *
+ * For hashing, encrypting, decrypting use: crypto
+ *
+ * import crypto from "crypto";
+ */
+
 import { Result } from "../models/rounds";
 
 export const generateResult = (): Result => {

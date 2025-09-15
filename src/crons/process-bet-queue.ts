@@ -29,7 +29,7 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         await super.handleSuccessBet(player, balance, roundId, bet);
 
         /**
-         * TODO list
+         * Task list
          * 1. Call settlement consumer
          */
     }

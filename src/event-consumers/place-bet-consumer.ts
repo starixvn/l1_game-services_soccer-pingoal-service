@@ -58,11 +58,11 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
                 failure: blueTunnel !== undefined && blueTunnel !== null && (blueTunnel < 1 || blueTunnel > 6 || !Number.isInteger(blueTunnel)),
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "blueTunnel must be an integer between 1 and 6" }),
             },
-            // Validation that tunnels are different
+            // Validation that player's tunnel selections are different
             {
                 failure: redTunnel !== undefined && blueTunnel !== undefined && 
                         redTunnel !== null && blueTunnel !== null && redTunnel === blueTunnel,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "redTunnel and blueTunnel cannot be the same" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "redTunnel and blueTunnel selections cannot be the same" }),
             },
         ];
     }

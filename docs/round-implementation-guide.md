@@ -33,17 +33,19 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 export interface IRound {
     id: number;                    // Unique round identifier
     result: {
-        red: number;               // Red team score
-        blue: number;              // Blue team score
-        redTunnel: number;         // Red tunnel selection (1-6)
-        blueTunnel: number;        // Blue tunnel selection (1-6)
+        red: number;               // Red team final score
+        blue: number;              // Blue team final score
+        redTunnel: number;         // Player's selected red tunnel (1-6) - from place bet
+        blueTunnel: number;        // Player's selected blue tunnel (1-6) - from place bet
         video: string;             // Game video URL
     };
-    settlementResult: Record<string, boolean>; // Settlement outcomes
+    settlementResult: Record<string, boolean>; // Settlement outcomes ("blue", "red", "draw")
     time: Date;                    // Round timestamp
     exchangeRateId: number;        // Exchange rate reference
 }
 ```
+
+**Important Note**: The `redTunnel` and `blueTunnel` in the round result represent the **player's tunnel selections** from their place bet request, not the actual game outcome tunnels.
 
 ### 3. Bet Payload Interface
 
@@ -55,10 +57,12 @@ interface BetPayload {
     roundId: number;               // Unique round ID for each bet
     mode: string;
     receivedTime: Date;
-    redTunnel: number;             // Player's red tunnel choice (1-6)
-    blueTunnel: number;            // Player's blue tunnel choice (1-6)
+    redTunnel: number;             // Player's red tunnel selection (1-6)
+    blueTunnel: number;            // Player's blue tunnel selection (1-6)
 }
 ```
+
+**Data Flow**: The `redTunnel` and `blueTunnel` from the bet payload are stored in the round's result object, representing what the player selected for this specific round.
 
 ## Round ID Generation Flow
 

@@ -9,7 +9,7 @@ interface BetPayload {
     amount: number;
     betChoice: string;
     freeBet: boolean;
-    roundId: number; // This property for multiple-players game only
+    roundId: number; // Unique round ID for each bet in single-player mode
     mode: string;
     receivedTime: Date;
     redTunnel: number;
@@ -29,17 +29,67 @@ interface Player {
 
 export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
     private settleGameRoundConsumer: SettleGameRoundConsumer;
+    private roundsRepository: any; // Reference to rounds repository
 
     constructor(dependencies: any) {
         super(dependencies);
         this.settleGameRoundConsumer = dependencies.settleGameRoundConsumer;
+        this.roundsRepository = dependencies.roundsRepository;
     }
 
+    /**
+     * Generate a new unique roundId for each bet (single-player style)
+     * Each bet gets its own round ID, allowing concurrent independent betting
+     */
+    private async generateNewRoundId(): Promise<number> {
+        // Get the latest round from database
+        const lastRound = await this.roundsRepository
+            .findOne({}, "id", { sort: { id: -1 } })
+            .lean()
+            .exec();
+        
+        if (lastRound) {
+            // Increment from the latest database round ID
+            const newRoundId = lastRound.id + 1;
+            this.gameData.roundId = newRoundId;
+            console.log(`Generated new round ID: ${newRoundId}`);
+            return newRoundId;
+        } else {
+            // If no rounds exist, increment from current gameData
+            this.gameData.roundId += 1;
+            console.log(`Generated new round ID: ${this.gameData.roundId}`);
+            return this.gameData.roundId;
+        }
+    }
+
+    /**
+     * Get a new unique round ID for each bet
+     * Used when you need a fresh round ID for betting operations
+     */
+    async getNewRoundForBetting(): Promise<number> {
+        return await this.generateNewRoundId();
+    }
+
+    /**
+     * Public method to be called before processing any bet to ensure unique roundId
+     * Prepares a new round ID and logs the preparation for tracking purposes
+     */
+    async prepareNewRoundForBet(): Promise<number> {
+        const newRoundId = await this.generateNewRoundId();
+        console.log(`Prepared new round ID: ${newRoundId} for incoming bet`);
+        return newRoundId;
+    }
+
+    /**
+     * Handle successful bet processing and immediate settlement
+     * In single-player mode, each bet is settled independently and immediately
+     */
     async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: BetPayload) {
         await super.handleSuccessBet(player, balance, roundId, bet);
 
+        console.log(`Successful bet by ${player.profile.name} on round ${roundId}`);
 
-        // Call settlement consumer after successful bet processing
+        // For single-player style, each bet gets its own round and should be settled immediately
         try {
             await this.settleGameRoundConsumer.settleRound();
             console.log(`Settlement completed for round ${roundId}`);
@@ -49,4 +99,5 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
             // Consider implementing a retry mechanism or queuing system for failed settlements
         }
     }
+
 }

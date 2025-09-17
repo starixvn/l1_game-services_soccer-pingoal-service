@@ -12,7 +12,7 @@ The issue was that the DB Round's `redTunnel` and `blueTunnel` fields were being
 
 We clarified that in this system:
 - ✅ `Round.result.redTunnel/blueTunnel` should store **player's tunnel selections** from place bet (exactly the same values)
-- ✅ `Round.result.red/blue` should store **randomly generated game scores** (the actual match outcome)
+- ✅ `Round.result.red/blue` should store **secureRandomRange generated game scores** (the actual match outcome using sc-core-rng)
 - ✅ Settlement is based on comparing red vs blue **scores**, not tunnel values
 
 ## Changes Made
@@ -40,8 +40,8 @@ export const generateResult = (): Result => {
 **After:**
 ```typescript
 export const generateResult = (playerPredictions: PlayerTunnelPredictions, roundId: number): Result => {
-    const redScore = Math.floor(Math.random() * 4);   // ✅ Random game outcome
-    const blueScore = Math.floor(Math.random() * 4);  // ✅ Random game outcome
+    const redScore = secureRandomRange(0, 3);   // ✅ Random game outcome (using sc-core-rng)
+    const blueScore = secureRandomRange(0, 3);  // ✅ Random game outcome (using sc-core-rng)
     
     return {
         red: redScore,                           // ✅ Generated game scores
@@ -150,7 +150,7 @@ async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: B
 
 - ✅ Player tunnel selections are validated (range 1-6, different values)
 - ✅ Round result stores player's original selections (identical values)
-- ✅ Game scores are generated randomly/independently  
+- ✅ Game scores are generated using sc-core-rng's secureRandomRange/independently  
 - ✅ Settlement uses game scores for winner determination
 - ✅ Video filename includes both game scores and player selections
 - ✅ Multiple concurrent bets work correctly
@@ -160,12 +160,12 @@ async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: B
 
 **For Existing Data:**
 - No database migration needed (schema unchanged)
-- Existing rounds may have random tunnel values (expected)
+- Existing rounds may have random tunnel values (expected, now using sc-core-rng)
 - New rounds will have correct player selection values
 
 **For Development:**
 - Use new `generateResult(playerSelections, roundId)` signature
-- Legacy `generateResultLegacy()` available for backwards compatibility
+- ❌ `generateResultLegacy()` is deprecated - tunnel values must come from player selections, not random generation
 - Enhanced logging shows player selections in settlement process
 
 ## Verification Commands

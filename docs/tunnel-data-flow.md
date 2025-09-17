@@ -28,8 +28,8 @@ graph TD
     
     E --> F[Round.result.redTunnel = 3<br/>&lpar;same as player choice&rpar;]
     E --> G[Round.result.blueTunnel = 5<br/>&lpar;same as player choice&rpar;]
-    E --> H[Round.result.red = 2<br/>&lpar;random generated&rpar;]
-    E --> I[Round.result.blue = 1<br/>&lpar;random generated&rpar;]
+    E --> H[Round.result.red = 2<br/>&lpar;secureRandomRange generated&rpar;]
+    E --> I[Round.result.blue = 1<br/>&lpar;secureRandomRange generated&rpar;]
     
     H --> J[Settlement Logic<br/>&lpar;red: 2 > blue: 1&rpar;]
     I --> J
@@ -38,7 +38,7 @@ graph TD
     K --> L[Store Complete Round Result]
 ```
 
-**Important**: The tunnel values (3, 5) flow directly from player request to stored result without any modification. Only the game scores (2, 1) are randomly generated.
+**Important**: The tunnel values (3, 5) flow directly from player request to stored result without any modification. Only the game scores (2, 1) are generated using secureRandomRange from sc-core-rng.
 
 ## Request to Storage Mapping
 
@@ -57,8 +57,8 @@ graph TD
 {
     "id": 8001,
     "result": {
-        "red": 2,            // Generated red team score (random game outcome)
-        "blue": 1,           // Generated blue team score (random game outcome)  
+        "red": 2,            // Generated red team score (secureRandomRange outcome)
+        "blue": 1,           // Generated blue team score (secureRandomRange outcome)  
         "redTunnel": 3,      // Same as player's selection (copied from request)
         "blueTunnel": 5,     // Same as player's selection (copied from request)
         "video": "2-1_3-5_8001.mp4"
@@ -73,7 +73,7 @@ graph TD
 }
 ```
 
-**Key Point**: The `redTunnel: 3, blueTunnel: 5` in the result are **exactly the same** as what the player specified in their bet request. Only the `red` and `blue` scores are randomly generated.
+**Key Point**: The `redTunnel: 3, blueTunnel: 5` in the result are **exactly the same** as what the player specified in their bet request. Only the `red` and `blue` scores are generated using sc-core-rng's secureRandomRange.
 
 ## Implementation Details
 

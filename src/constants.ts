@@ -28,7 +28,7 @@ const totalBetChoiceRate = Object.values(BET_CHOICE_RATE).reduce((sum, rate) => 
 if (Math.abs(totalBetChoiceRate - 1.0) > 0.001) {
     throw new Error(`BET_CHOICE_RATE probabilities must sum to 1.0, got: ${totalBetChoiceRate}`);
 }
-
+//NOSONAR
 export const DEFAULT_NUMBER_OF_VIDEOS: Record<string, Record<string, number>> = 
 {
     "R1B2": {

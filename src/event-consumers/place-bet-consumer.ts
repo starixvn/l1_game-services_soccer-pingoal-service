@@ -10,17 +10,15 @@ import { BET_CHOICES } from "../constants";
  * 2. ✅ Validate betChoice against BET_CHOICES - COMPLETED
  *    - Added validation to ensure betChoice is one of: "blue", "red", "draw"
  *    - Provides specific error messages with valid options
- * 3. Increase the round ID in `this.gameData.roundId` and assign roundId to bet's payload.
- * This is important to make sure each bet is linked to the single round (1-1 relationship).
+ * 
+ * Note: Round ID management is now handled in ProcessBetQueue.generateNewRoundId()
+ * Each bet gets a unique round ID in single-player mode.
  */
 
 export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetConsumer {
     validateBetRequestParams(request: any) {
         const { betChoice, amount, redTunnel, blueTunnel } = request;
 
-        // Get current round ID - 取得最新的 RoundId
-        const currentRoundId = this.gameData.roundId;
-        
         // Get valid bet choices for validation
         const validBetChoices = Object.values(BET_CHOICES);
 

@@ -3,6 +3,7 @@ import { Table } from "sc-game-base";
 import { GameCron, ProcessBetQueue } from "./crons";
 import { InGameConsumer, PlaceBetConsumer, SettleGameRoundConsumer } from "./event-consumers";
 import { betLogs, bets, rounds, tmpBets } from "./models";
+import { GameStatusPublisher } from "./event-publishers";
 
 export default class ContainerRegistry extends Table.TableContainerRegistry {
     register(appConfigs: any, definition: any, gameData: any): AwilixContainer<any> {
@@ -38,6 +39,14 @@ export default class ContainerRegistry extends Table.TableContainerRegistry {
             inGameConsumer: asClass(InGameConsumer).singleton(),
             settleGameRoundConsumer: asClass(SettleGameRoundConsumer).singleton().proxy(),
             placeBetConsumer: asClass(PlaceBetConsumer).singleton(),
+        });
+    }
+
+    registerPublishers() {
+        super.registerPublishers();
+
+        this.container.register({
+            gameStatusPublisher: asClass(GameStatusPublisher).singleton(),
         });
     }
 }

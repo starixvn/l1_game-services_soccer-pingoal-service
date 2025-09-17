@@ -1,14 +1,14 @@
 /**
  * Recommend library for random is: sc-core-rng
  *
- * import { secureShuffle, secureWeightedPick, secureRandomRange } from "sc-core-rng";
+ * import { secureWeightedPick, secureRandomRange } from "sc-core-rng";
  *
  * For hashing, encrypting, decrypting use: crypto
  *
  * import crypto from "crypto";
  */
 
-import { secureShuffle, secureWeightedPick, secureRandomRange, securePickOne } from "sc-core-rng";
+import { secureWeightedPick, secureRandomRange, securePickOne } from "sc-core-rng";
 import crypto from "crypto";
 import { Result } from "../models/rounds";
 import * as constants from "../constants";

@@ -14,13 +14,17 @@ The `validateBetRequestParams` function in `/src/event-consumers/place-bet-consu
    ```
 
 2. **Added Comprehensive Validation Rules**
-   - **Presence Validation**: Both `redTunnel` and `blueTunnel` must be provided
-   - **Range Validation**: Both values must be integers between 1 and 6 (inclusive)
-   - **Uniqueness Validation**: `redTunnel` and `blueTunnel` cannot be the same value
+   - **Amount Validation**: Amount must be provided and greater than 0
+   - **BetChoice Validation**: Must be one of the valid choices from `BET_CHOICES` ("blue", "red", "draw")
+   - **Tunnel Presence Validation**: Both `redTunnel` and `blueTunnel` must be provided
+   - **Tunnel Range Validation**: Both values must be integers between 1 and 6 (inclusive)
+   - **Tunnel Uniqueness Validation**: `redTunnel` and `blueTunnel` cannot be the same value
 
 3. **Validation Logic Structure**
-   The function now returns 6 validation checks:
-   - Basic validation (original: `amount` and `betChoice`)
+   The function now returns 8 validation checks:
+   - Amount validation (must be > 0)
+   - `betChoice` presence check
+   - `betChoice` value validation (must be "blue", "red", or "draw")
    - `redTunnel` presence check
    - `blueTunnel` presence check  
    - `redTunnel` range validation (1-6, integer)
@@ -32,19 +36,29 @@ The `validateBetRequestParams` function in `/src/event-consumers/place-bet-consu
 ### Valid Request Example
 ```javascript
 {
-    betChoice: "some_bet_choice",
-    amount: 100,
-    redTunnel: 3,    // Valid: integer 1-6
-    blueTunnel: 5    // Valid: integer 1-6, different from redTunnel
+    betChoice: "blue",   // Valid: must be "blue", "red", or "draw"
+    amount: 100,         // Valid: must be > 0
+    redTunnel: 3,        // Valid: integer 1-6
+    blueTunnel: 5        // Valid: integer 1-6, different from redTunnel
 }
 ```
 
 ### Invalid Request Examples
 
+**Invalid betChoice:**
+```javascript
+{
+    betChoice: "yellow",  // Invalid: must be "blue", "red", or "draw"
+    amount: 100,
+    redTunnel: 1,
+    blueTunnel: 2
+}
+```
+
 **Missing tunnels:**
 ```javascript
 {
-    betChoice: "some_bet_choice",
+    betChoice: "blue",
     amount: 100
     // Missing redTunnel and blueTunnel - will fail validation
 }
@@ -53,7 +67,7 @@ The `validateBetRequestParams` function in `/src/event-consumers/place-bet-consu
 **Out of range:**
 ```javascript
 {
-    betChoice: "some_bet_choice", 
+    betChoice: "red", 
     amount: 100,
     redTunnel: 7,    // Invalid: outside 1-6 range
     blueTunnel: 2
@@ -63,7 +77,7 @@ The `validateBetRequestParams` function in `/src/event-consumers/place-bet-consu
 **Same values:**
 ```javascript
 {
-    betChoice: "some_bet_choice",
+    betChoice: "draw",
     amount: 100, 
     redTunnel: 3,    // Invalid: same as blueTunnel
     blueTunnel: 3
@@ -73,6 +87,9 @@ The `validateBetRequestParams` function in `/src/event-consumers/place-bet-consu
 ## Error Messages
 
 The implementation provides specific error messages:
+- `"Amount is required and must be greater than 0"`
+- `"BetChoice is required"`
+- `"BetChoice must be one of: blue, red, draw. Received: [invalid_value]"`
 - `"redTunnel is required"`
 - `"blueTunnel is required"`
 - `"redTunnel must be an integer between 1 and 6"`
@@ -83,25 +100,32 @@ The implementation provides specific error messages:
 
 ### Test Cases to Verify
 
-1. **Happy Path**: Valid tunnels (different values, 1-6 range)
-2. **Missing Properties**: Request without `redTunnel` or `blueTunnel`
-3. **Invalid Range**: Tunnels with values 0, 7, -1, etc.
-4. **Non-Integer**: Tunnels with decimal values (1.5, 2.7)
-5. **Same Values**: Both tunnels with identical values
-6. **Edge Cases**: Boundary values (1, 6)
+1. **Happy Path**: Valid request with correct betChoice and tunnels
+2. **Invalid BetChoice**: Request with betChoice not in ["blue", "red", "draw"]
+3. **Missing BetChoice**: Request without betChoice property
+4. **Invalid Amount**: Request with amount <= 0 or missing
+5. **Missing Properties**: Request without `redTunnel` or `blueTunnel`
+6. **Invalid Range**: Tunnels with values 0, 7, -1, etc.
+7. **Non-Integer**: Tunnels with decimal values (1.5, 2.7)
+8. **Same Values**: Both tunnels with identical values
+9. **Edge Cases**: Boundary values (1, 6) and valid betChoice combinations
 
 ### Example Test Data
 ```javascript
 // Valid cases
-{ redTunnel: 1, blueTunnel: 6 } // ✅ Valid
-{ redTunnel: 3, blueTunnel: 2 } // ✅ Valid
+{ betChoice: "blue", amount: 100, redTunnel: 1, blueTunnel: 6 } // ✅ Valid
+{ betChoice: "red", amount: 50, redTunnel: 3, blueTunnel: 2 } // ✅ Valid
+{ betChoice: "draw", amount: 200, redTunnel: 5, blueTunnel: 4 } // ✅ Valid
 
 // Invalid cases  
-{ redTunnel: 0, blueTunnel: 1 } // ❌ redTunnel out of range
-{ redTunnel: 1, blueTunnel: 7 } // ❌ blueTunnel out of range
-{ redTunnel: 3, blueTunnel: 3 } // ❌ Same values
-{ redTunnel: 1.5, blueTunnel: 2 } // ❌ Non-integer
-{ blueTunnel: 2 } // ❌ Missing redTunnel
+{ betChoice: "yellow", amount: 100, redTunnel: 1, blueTunnel: 2 } // ❌ Invalid betChoice
+{ amount: 100, redTunnel: 1, blueTunnel: 2 } // ❌ Missing betChoice
+{ betChoice: "blue", amount: 0, redTunnel: 1, blueTunnel: 2 } // ❌ Invalid amount
+{ betChoice: "red", amount: 100, redTunnel: 0, blueTunnel: 1 } // ❌ redTunnel out of range
+{ betChoice: "blue", amount: 100, redTunnel: 1, blueTunnel: 7 } // ❌ blueTunnel out of range
+{ betChoice: "draw", amount: 100, redTunnel: 3, blueTunnel: 3 } // ❌ Same tunnel values
+{ betChoice: "blue", amount: 100, redTunnel: 1.5, blueTunnel: 2 } // ❌ Non-integer
+{ betChoice: "red", amount: 100, blueTunnel: 2 } // ❌ Missing redTunnel
 ```
 
 ## Files Modified

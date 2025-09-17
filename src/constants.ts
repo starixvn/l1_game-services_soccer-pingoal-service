@@ -16,6 +16,18 @@ export const GAME_NAME = "soccerpingoal";
 
 export const MODEL_NAME_PREFIX = IS_DEV_ENV ? `${GAME_NAME}_dev` : `${GAME_NAME}`;
 
+// Game outcome probabilities for bet result determination
+export const BET_CHOICE_RATE = {
+    red: 0.45,    // 45% chance red team wins (red score > blue score)
+    blue: 0.45,   // 45% chance blue team wins (blue score > red score)  
+    draw: 0.10    // 10% chance draw (red score === blue score)
+} as const;
+
+// Validate BET_CHOICE_RATE probabilities sum to 1.0
+const totalBetChoiceRate = Object.values(BET_CHOICE_RATE).reduce((sum, rate) => sum + rate, 0);
+if (Math.abs(totalBetChoiceRate - 1.0) > 0.001) {
+    throw new Error(`BET_CHOICE_RATE probabilities must sum to 1.0, got: ${totalBetChoiceRate}`);
+}
 
 export const DEFAULT_NUMBER_OF_VIDEOS: Record<string, Record<string, number>> = 
 {

@@ -1,4 +1,11 @@
-{
+import type { RaceTrackConfig } from '../types/game-config';
+
+/**
+ * R1B2 Race Track Configuration
+ * Defines the number of available videos for each race result combination
+ * in the R1B2 track type (Red Team 1, Blue Team 2 configuration)
+ */
+export const R1B2_CONFIG: RaceTrackConfig = {
     "R10B10": 1,
     "R10B11": 1,
     "R10B20": 1,
@@ -44,4 +51,6 @@
     "R8B5": 1,
     "R9B15": 2,
     "R9B7": 1
-}
+} as const;
+
+export default R1B2_CONFIG;

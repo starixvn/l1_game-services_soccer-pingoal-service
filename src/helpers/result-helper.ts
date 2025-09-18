@@ -13,6 +13,9 @@ import crypto from "crypto";
 import { Result } from "../models/rounds";
 import * as constants from "../constants";
 
+// Type alias for game outcomes - using BET_CHOICES for consistency
+type GameOutcome = keyof typeof constants.BET_CHOICES;
+
 // Interface for player's tunnel selections
 interface PlayerTunnelSelections {
     redTunnel: number;   // Player's specified red tunnel choice (1-6)
@@ -22,11 +25,11 @@ interface PlayerTunnelSelections {
 /**
  * Determines game outcome using BET_CHOICE_RATE probabilities
  */
-const selectGameOutcome = (): 'red' | 'blue' | 'draw' => {
-    const outcomes: ('red' | 'blue' | 'draw')[] = ['red', 'blue', 'draw'];
-    const weights = [constants.BET_CHOICE_RATE.red, constants.BET_CHOICE_RATE.blue, constants.BET_CHOICE_RATE.draw];
+const selectGameOutcome = (): GameOutcome => {
+    const outcomes: GameOutcome[] = Object.values(constants.BET_CHOICES) as GameOutcome[];
+    const weights = outcomes.map(outcome => constants.BET_CHOICE_RATE[outcome]);
     
-    const selectedOutcome = secureWeightedPick(outcomes, weights) as 'red' | 'blue' | 'draw';
+    const selectedOutcome = secureWeightedPick(outcomes, weights) as GameOutcome;
     console.log(`Selected game outcome: ${selectedOutcome} (red:${constants.BET_CHOICE_RATE.red}, blue:${constants.BET_CHOICE_RATE.blue}, draw:${constants.BET_CHOICE_RATE.draw})`);
     
     return selectedOutcome;
@@ -35,7 +38,7 @@ const selectGameOutcome = (): 'red' | 'blue' | 'draw' => {
 /**
  * Classifies score key by outcome type
  */
-export const classifyScore = (scoreKey: string): 'red' | 'blue' | 'draw' | null => {
+export const classifyScore = (scoreKey: string): GameOutcome | null => {
     const match = scoreKey.match(/^R(\d+)B(\d+)$/);
     if (!match) {
         return null;
@@ -56,7 +59,7 @@ export const classifyScore = (scoreKey: string): 'red' | 'blue' | 'draw' | null 
 /**
  * Filters available scores by desired outcome
  */
-const filterScoresByOutcome = (availableScores: Record<string, number>, targetOutcome: 'red' | 'blue' | 'draw'): string[] => {
+const filterScoresByOutcome = (availableScores: Record<string, number>, targetOutcome: GameOutcome): string[] => {
     const scoreKeys = Object.keys(availableScores);
     const validScores = scoreKeys.filter(scoreKey => {
         const outcome = classifyScore(scoreKey);

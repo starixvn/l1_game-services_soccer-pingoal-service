@@ -52,12 +52,10 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
             realPlayer.session.playerId
         );
 
-        const payload = {
+        return {
             gameConfigs,
             roundHistory,
             user: { ...user, rate },
         };
-        
-        return payload;
     }
 }

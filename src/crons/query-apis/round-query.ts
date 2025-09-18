@@ -1,7 +1,7 @@
 import { Core } from "sc-game-base";
 
 export class RoundQuery extends Core.QueryApis.RoundQuery {
-    private betsRepository: any;
+    private readonly betsRepository: any;
 
     constructor(roundsRepository: any, resultsRepository: any, betsRepository: any) {
         super(roundsRepository, resultsRepository);
@@ -11,14 +11,12 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
 
     override async getList(limit: number, userid?: string) {
         if (userid) {
-            return await this.getPlayerRounds(limit, userid);
+            return this.getPlayerRounds(limit, userid);
         }
-        return await super.getList(limit);
+        return super.getList(limit);
     }
 
-    // 玩家專屬查詢
     private async getPlayerRounds(limit: number, userid: string): Promise<any[]>  {
-        // 先從 bets 表找出玩家的注單
         const bets = await this.betsRepository
             .find(
                 { 
@@ -47,7 +45,6 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
             .lean()
             .exec();
 
-        // 保持原來的資料格式
         return rounds.map((round: any) => {
             const result = round.result ?? this.convertResult(round);
             const settlementResult = round.settlementResult ?? this.convertSettlementResult(result);

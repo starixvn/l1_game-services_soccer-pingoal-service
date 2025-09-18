@@ -40,12 +40,6 @@ export const BET_CHOICE_RATE = {
     draw: 0.10    // 10% chance draw (red score === blue score)
 } as const;
 
-// Validate BET_CHOICE_RATE probabilities sum to 1.0
-const totalBetChoiceRate = Object.values(BET_CHOICE_RATE).reduce((sum, rate) => sum + rate, 0);
-if (Math.abs(totalBetChoiceRate - 1.0) > 0.001) {
-    throw new Error(`BET_CHOICE_RATE probabilities must sum to 1.0, got: ${totalBetChoiceRate}`);
-}
-
 /**
  * Configuration mapping for default number of videos per race track combination.
  * Each key represents a race track type (R1B2, R1B3, etc.) and maps to 

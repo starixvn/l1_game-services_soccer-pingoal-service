@@ -32,27 +32,21 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
     async consume(realPlayer: Player) {
         const { gameConfigs } = this.gameData;
         const disabled = !gameConfigs || !gameConfigs.enabled || this.gameData.delayStartTime > 0;
-
         realPlayer.socketClient.emit(this.definition.name, { um: disabled, um_message: this.gameData.umMessages });
 
         const payload = await this.buildPayload(realPlayer);
-
         this.publisher.publishToUser(realPlayer.UID, payload);
     }
 
     // @ts-expect-error Intentionally omitting roundId from payload
     override async buildPayload(realPlayer: Player) {
         const user = await this.getUserInfo(realPlayer);
-
-        const { odds, originalOdds, enableFreeBet, boostedChoices } = this.gameData.gameConfigs;
-        const { totalBets, roundId, exchangeRates } = this.gameData;
+        const { odds, originalOdds } = this.gameData.gameConfigs;
+        const { exchangeRates } = this.gameData;
         const { session } = realPlayer;
         const rate = exchangeRates.code[session.currencyCode] * session.multiplier;
         const settings = this.gameData.currencyGroupGames.find((x) => x.groupId.toString() === session.currencyGroupId);
-        const gameConfigs = { ...settings, odds, originalOdds, enableFreeBet, boostedChoices };
-        const { ownBets, clientSeed } = this.gameData.ingame[realPlayer.profile.name] || { ownBets: {} };
-        console.log("realPlayer", realPlayer);
-        console.log("realPlayer.session.userId", realPlayer.session.playerId);
+        const gameConfigs = { ...settings, odds, originalOdds };
         const roundHistory = await this.roundQuery.getList(
             this.definition.numberOfRoundHistory,
             realPlayer.session.playerId
@@ -61,11 +55,7 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
         const payload = {
             gameConfigs,
             roundHistory,
-            ownBets,
-            totalBets,
             user: { ...user, rate },
-            resultHash: this.getResultHash(),
-            clientSeed,
         };
         
         return payload;

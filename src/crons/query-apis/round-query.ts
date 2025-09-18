@@ -53,7 +53,6 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
             const settlementResult = round.settlementResult ?? this.convertSettlementResult(result);
 
             return {
-                result,
                 settlementResult,
             };
         });

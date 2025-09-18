@@ -35,7 +35,7 @@ const selectGameOutcome = (): 'red' | 'blue' | 'draw' => {
 /**
  * Classifies score key by outcome type
  */
-const classifyScore = (scoreKey: string): 'red' | 'blue' | 'draw' | null => {
+export const classifyScore = (scoreKey: string): 'red' | 'blue' | 'draw' | null => {
     const match = scoreKey.match(/^R(\d+)B(\d+)$/);
     if (!match) {
         return null;

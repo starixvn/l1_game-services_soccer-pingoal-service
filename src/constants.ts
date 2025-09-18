@@ -1,12 +1,12 @@
 // Import types
-import type { VideoConfigurationMap, RaceTrackConfig } from './types/game-config';
+import type { VideoConfigurationMap, RaceTrackConfig } from "./types/game-config";
 
-// Import JSON configurations using ES6 import syntax
-import R1B2_CONFIG from '../configs/gamedata/r1b2.json';
-import R1B3_CONFIG from '../configs/gamedata/r1b3.json';
-import R1B4_CONFIG from '../configs/gamedata/r1b4.json';
-import R1B5_CONFIG from '../configs/gamedata/r1b5.json';
-import R1B6_CONFIG from '../configs/gamedata/r1b6.json';
+// Import JSON configurations using ES6 import syntax with import attributes
+import R1B2_CONFIG from "./gamedata/r1b2.json" with { type: "json" };
+import R1B3_CONFIG from "./gamedata/r1b3.json" with { type: "json" };
+import R1B4_CONFIG from "./gamedata/r1b4.json" with { type: "json" };
+import R1B5_CONFIG from "./gamedata/r1b5.json" with { type: "json" };
+import R1B6_CONFIG from "./gamedata/r1b6.json" with { type: "json" };
 
 // Type assertion to ensure JSON imports have correct type
 const r1b2Config: RaceTrackConfig = R1B2_CONFIG;
@@ -35,25 +35,25 @@ export const MODEL_NAME_PREFIX = IS_DEV_ENV ? `${GAME_NAME}_dev` : `${GAME_NAME}
 
 // Game outcome probabilities for bet result determination
 export const BET_CHOICE_RATE = {
-    red: 0.45,    // 45% chance red team wins (red score > blue score)
-    blue: 0.45,   // 45% chance blue team wins (blue score > red score)  
-    draw: 0.10    // 10% chance draw (red score === blue score)
+    red: 0.45, // 45% chance red team wins (red score > blue score)
+    blue: 0.45, // 45% chance blue team wins (blue score > red score)
+    draw: 0.1, // 10% chance draw (red score === blue score)
 } as const;
 
 /**
  * Configuration mapping for default number of videos per race track combination.
- * Each key represents a race track type (R1B2, R1B3, etc.) and maps to 
+ * Each key represents a race track type (R1B2, R1B3, etc.) and maps to
  * a configuration object containing race result patterns and their video counts.
- * 
+ *
  * @example
  * // Access R1B2 configuration
  * const r1b2Videos = DEFAULT_NUMBER_OF_VIDEOS["R1B2"]["R10B10"]; // returns 1
  */
 //NOSONAR
 export const DEFAULT_NUMBER_OF_VIDEOS: VideoConfigurationMap = {
-    "R1B2": r1b2Config,
-    "R1B3": r1b3Config,
-    "R1B4": r1b4Config,
-    "R1B5": r1b5Config,
-    "R1B6": r1b6Config
+    R1B2: r1b2Config,
+    R1B3: r1b3Config,
+    R1B4: r1b4Config,
+    R1B5: r1b5Config,
+    R1B6: r1b6Config,
 } as const;

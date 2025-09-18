@@ -11,6 +11,7 @@
     "main": "./build/app.js",
     "type": "module",
     "scripts": {
+        "start": "node --experimental-loader=extensionless ./build/app.js",
         "build": "tsc -p tsconfig.build.json",
         "test": "jest --testPathPatterns=tests/unit-tests/ ",
         "test-coverage": "jest --collect-coverage --testPathPatterns=tests/unit-tests/",

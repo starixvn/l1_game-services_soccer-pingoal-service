@@ -2,7 +2,7 @@ import type { Socket } from "socket.io";
 
 import { Core } from "sc-game-base";
 
-//import { getOrDefault, callAndForget } from "sc-game-base/src/core/game-management-api";
+
 import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
 
 interface BetPayload {

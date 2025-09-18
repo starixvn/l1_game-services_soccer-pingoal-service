@@ -197,6 +197,69 @@ describe("config-validator", () => {
         });
     });
 
+    describe("error handling edge cases", () => {
+        it("should handle non-Error exceptions by using String conversion", () => {
+            // Temporarily mock validateBetChoiceRateProbabilities within this module
+            const originalFunction = validateBetChoiceRateProbabilities;
+            
+            // Create a new implementation that throws a string
+            const mockValidateFunction = jest.fn(() => {
+                throw "String error instead of Error object";
+            });
+
+            // Replace the function in the validator module by importing and mocking
+            const validator = require("../../../src/validators/config-validator");
+            const originalValidateBetChoiceRateProbabilities = validator.validateBetChoiceRateProbabilities;
+            
+            // Mock the function to throw a non-Error type
+            validator.validateBetChoiceRateProbabilities = mockValidateFunction;
+
+            // This should trigger the String(error) branch in validateAllConfigurations
+            expect(() => validator.validateAllConfigurations()).toThrow(
+                "Configuration validation failed: String error instead of Error object"
+            );
+
+            // Restore the original function
+            validator.validateBetChoiceRateProbabilities = originalValidateBetChoiceRateProbabilities;
+        });
+
+        it("should handle object exceptions by using String conversion", () => {
+            const validator = require("../../../src/validators/config-validator");
+            const originalValidateBetChoiceRateProbabilities = validator.validateBetChoiceRateProbabilities;
+            
+            // Mock the function to throw an object
+            validator.validateBetChoiceRateProbabilities = jest.fn(() => {
+                throw { type: "CustomError", details: "Something went wrong" };
+            });
+
+            // This should convert the object to "[object Object]" via String()
+            expect(() => validator.validateAllConfigurations()).toThrow(
+                "Configuration validation failed: [object Object]"
+            );
+
+            // Restore the original function
+            validator.validateBetChoiceRateProbabilities = originalValidateBetChoiceRateProbabilities;
+        });
+
+        it("should handle number exceptions by using String conversion", () => {
+            const validator = require("../../../src/validators/config-validator");
+            const originalValidateBetChoiceRateProbabilities = validator.validateBetChoiceRateProbabilities;
+            
+            // Mock the function to throw a number
+            validator.validateBetChoiceRateProbabilities = jest.fn(() => {
+                throw 404;
+            });
+
+            // This should convert the number to "404" via String()
+            expect(() => validator.validateAllConfigurations()).toThrow(
+                "Configuration validation failed: 404"
+            );
+
+            // Restore the original function
+            validator.validateBetChoiceRateProbabilities = originalValidateBetChoiceRateProbabilities;
+        });
+    });
+
     describe("integration with actual constants", () => {
         beforeEach(() => {
             // Reset modules to test with actual constants

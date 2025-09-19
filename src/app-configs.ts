@@ -67,6 +67,7 @@ const appConfigs = {
         id: "Game Service",
         key: "58148de3-b895-4f6b-82de-a35eed1b4b28",
     },
+    liveStreamServer: "https://d1aof1lwumql9k.cloudfront.net/soccerpingoal/",
 };
 
 export default appConfigs;

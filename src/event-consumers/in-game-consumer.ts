@@ -1,4 +1,5 @@
 import { Core } from "sc-game-base";
+import appConfigs from "../app-configs";
 
 interface Player {
     UID: string;
@@ -51,11 +52,13 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
             this.definition.numberOfRoundHistory,
             realPlayer.session.playerId
         );
+        const liveStreamServer = appConfigs.liveStreamServer;
 
         return {
             gameConfigs,
             roundHistory,
             user: { ...user, rate },
+            liveStreamServer,
         };
     }
 }

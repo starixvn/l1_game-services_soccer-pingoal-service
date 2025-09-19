@@ -66,4 +66,5 @@ export default {
         id: "Game Service",
         key: "422541af-80aa-4524-97c8-62f643ac923e",
     },
+    liveStreamServer: "https://d1aof1lwumql9k.cloudfront.net/soccerpingoal/",
 };

@@ -27,13 +27,13 @@
     },
     "resolutions": {
         "mongoose": "8.18.1",
-        "sc-common": "3.0.0"
+        "sc-common": "2.0.0"
     },
     "dependencies": {
         "awilix": "12.0.5",
         "extensionless": "1.9.9",
         "mongoose": "8.18.1",
-        "sc-common": "3.0.0",
+        "sc-common": "2.0.0",
         "sc-core-rng": "1.1.0",
         "sc-game-base": "5.4.0",
         "sc-game-management-client": "0.1.5",

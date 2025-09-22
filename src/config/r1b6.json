@@ -1,4 +1,4 @@
-export const R1B6_CONFIG: Record<string, number> = {
+{
     "R10B14": 2,
     "R10B5": 1,
     "R10B7": 1,
@@ -42,4 +42,4 @@ export const R1B6_CONFIG: Record<string, number> = {
     "R9B20": 2,
     "R9B3": 1,
     "R9B5": 1
-};
+}

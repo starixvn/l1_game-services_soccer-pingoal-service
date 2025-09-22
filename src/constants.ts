@@ -1,8 +1,9 @@
-import { R1B2_CONFIG } from './config/r1b2';
-import { R1B3_CONFIG } from './config/r1b3';
-import { R1B4_CONFIG } from './config/r1b4';
-import { R1B5_CONFIG } from './config/r1b5';
-import { R1B6_CONFIG } from './config/r1b6';
+// Import JSON configurations
+const R1B2_CONFIG = require('./config/r1b2.json');
+const R1B3_CONFIG = require('./config/r1b3.json');
+const R1B4_CONFIG = require('./config/r1b4.json');
+const R1B5_CONFIG = require('./config/r1b5.json');
+const R1B6_CONFIG = require('./config/r1b6.json');
 
 export const BET_CHOICES = {
     blue: "blue",

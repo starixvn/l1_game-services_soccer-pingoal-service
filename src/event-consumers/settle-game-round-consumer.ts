@@ -38,19 +38,22 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         
         if (roundsRepository) {
             try {
-                // 使用 findOneAndUpdate 原子操作
-                const result = await roundsRepository.findOneAndUpdate(
-                    {}, // 空查询条件
-                    { $inc: { sequence: 1 } }, // 原子递增
-                    { 
-                        upsert: true, // 如果不存在则创建
-                        new: true, // 返回更新后的文档
-                        sort: { _id: -1 },
-                        setDefaultsOnInsert: true
-                    }
-                );
+                // Find the latest round by id in descending order
+                const lastRound = await roundsRepository
+                    .findOne({}, "id", { sort: { id: -1 } })
+                    .lean()
+                    .exec();
                 
-                return result.sequence;
+                if (lastRound) {
+                    // Increment from the latest database round ID
+                    const nextRoundId = lastRound.id + 1;
+                    console.log(`Generated next round ID: ${nextRoundId} (from database max: ${lastRound.id})`);
+                    return nextRoundId;
+                } else {
+                    // If no rounds exist, start from 1
+                    console.log(`No existing rounds found, starting from round ID: 1`);
+                    return 1;
+                }
             } catch (error) {
                 console.error(`Atomic round ID generation failed: ${error}`);
                 throw new Error('Failed to generate round ID');
@@ -115,7 +118,16 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         const settlementResult = (this.definition as any).settle(result);
         const { roundId, exchangeRates } = this.gameData;
         
-        console.log(`Creating round in database with ID: ${roundId}`);
+        // Validate required fields before creating round
+        if (!roundId) {
+            throw new Error('roundId is required but not available');
+        }
+        
+        if (!exchangeRates || !exchangeRates.exId) {
+            throw new Error('exchangeRates.exId is required but not available');
+        }
+        
+        console.log(`Creating round in database with ID: ${roundId}, exchangeRateId: ${exchangeRates.exId}`);
         
         const newRound = await (this as any).roundsRepository.create({
             id: roundId,

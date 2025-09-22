@@ -18,6 +18,9 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
     validateBetRequestParams(request: any) {
         const { betChoice, amount, redTunnel, blueTunnel } = request;
 
+        // Get current round ID - 取得最新的 RoundId
+        const currentRoundId = this.gameData.roundId;
+        
         // Get valid bet choices for validation
         const validBetChoices = Object.values(BET_CHOICES);
 

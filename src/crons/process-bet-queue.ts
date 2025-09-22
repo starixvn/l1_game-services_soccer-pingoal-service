@@ -2,7 +2,7 @@ import type { Socket } from "socket.io";
 
 import { Core } from "sc-game-base";
 
-import { getOrDefault, callAndForget } from "sc-game-base/src/core/game-management-api";
+//import { getOrDefault, callAndForget } from "sc-game-base/src/core/game-management-api";
 import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
 
 interface BetPayload {
@@ -28,8 +28,8 @@ interface Player {
 }
 
 export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
-    private settleGameRoundConsumer: SettleGameRoundConsumer;
-    private roundsRepository: any; // Reference to rounds repository
+    private readonly settleGameRoundConsumer: SettleGameRoundConsumer;
+    private readonly roundsRepository: any; // Reference to rounds repository
 
     constructor(dependencies: any) {
         super(dependencies);
@@ -67,7 +67,7 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
      * Used when you need a fresh round ID for betting operations
      */
     async getNewRoundForBetting(): Promise<number> {
-        return await this.generateNewRoundId();
+        return this.generateNewRoundId();
     }
 
     /**

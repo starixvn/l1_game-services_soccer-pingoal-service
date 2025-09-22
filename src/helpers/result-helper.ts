@@ -37,13 +37,19 @@ const selectGameOutcome = (): 'red' | 'blue' | 'draw' => {
  */
 const classifyScore = (scoreKey: string): 'red' | 'blue' | 'draw' | null => {
     const match = scoreKey.match(/^R(\d+)B(\d+)$/);
-    if (!match) return null;
+    if (!match) {
+        return null;
+    }
     
     const red = parseInt(match[1], 10);
     const blue = parseInt(match[2], 10);
     
-    if (red > blue) return 'red';
-    if (blue > red) return 'blue';
+    if (red > blue) {
+        return 'red';
+    }
+    if (blue > red) {
+        return 'blue';
+    }
     return 'draw';
 };
 
@@ -135,17 +141,22 @@ export const generateResult = (playerSelections: PlayerTunnelSelections, roundId
     // 1. Select outcome (red/blue/draw) using BET_CHOICE_RATE
     // 2. Select specific score from available scores that match the outcome
     const { redScore, blueScore, selectedScoreKey } = generateScoreFromOutcome(tunnelKey);
+
     
     // Generate video index based on available videos for the selected score
     const videoIndex = generateVideoIndex(tunnelKey, selectedScoreKey);
-    
+
+    let video = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}_${videoIndex}.mp4`;
+  
+    let sha256Video = crypto.createHash("sha256").update(`${video}`).digest("hex");
+
     // Store player's specified tunnel choices and generated scores in the result
     return {
         red: redScore,                         // Score from outcome-based selection
         blue: blueScore,                       // Score from outcome-based selection
         redTunnel: playerSelections.redTunnel,  // Player's specified red tunnel choice
         blueTunnel: playerSelections.blueTunnel, // Player's specified blue tunnel choice
-        video: `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}_${videoIndex}.mp4`,
+        video: sha256Video,
     };
 };
 

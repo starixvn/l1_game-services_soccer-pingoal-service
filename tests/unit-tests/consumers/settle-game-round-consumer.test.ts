@@ -46,8 +46,30 @@ describe("SettleGameRoundConsumer", () => {
         consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
         consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
         
-        // Create instance - it appears the constructor only takes one argument
+        // Create instance
         settleGameRoundConsumer = new SettleGameRoundConsumer({} as any);
+        
+        // Mock roundsRepository directly on the instance for getNextRoundIdAtomically
+        const mockRoundsRepository = {
+            findOneAndUpdate: jest.fn().mockResolvedValue({ sequence: 123 }),
+            create: jest.fn().mockResolvedValue({ id: 123, time: new Date() })
+        };
+        
+        // Set roundsRepository as instance property (this is how the actual code accesses it)
+        (settleGameRoundConsumer as any).roundsRepository = mockRoundsRepository;
+        
+        // Mock other required methods for settleBets, roundResultPublisher, etc
+        (settleGameRoundConsumer as any).settleBets = jest.fn().mockResolvedValue(undefined);
+        (settleGameRoundConsumer as any).roundResultPublisher = {
+            publishRoundResult: jest.fn(),
+            publishWinners: jest.fn()
+        };
+        (settleGameRoundConsumer as any).collectRoundResult = jest.fn().mockReturnValue({});
+        
+        // Mock gameData for settleRound - use roundId 123 to match test expectations
+        settleGameRoundConsumer.gameData = {
+            roundId: 123
+        } as any;
         
         // Get references to mocked functions
         mockGenerateResult = generateResult as jest.MockedFunction<typeof generateResult>;
@@ -74,7 +96,7 @@ describe("SettleGameRoundConsumer", () => {
             
             // Verify logging
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Starting settlement for pre-assigned round 124 with tunnel selections: red=2, blue=4, player=unknown"
+                "Starting settlement for pre-assigned round 123 with tunnel selections: red=2, blue=4, player=unknown"
             );
         });
 

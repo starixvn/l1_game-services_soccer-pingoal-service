@@ -10,6 +10,7 @@ import { Core } from "sc-game-base";
  * 4. Publish round result to player
  * 5. Settle bets in bets table
  * 6. Publish bet's settlement result to player
+ * 7. Publish game status to player
  */
 
 export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.SettleGameRoundConsumer {}

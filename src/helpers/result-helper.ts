@@ -8,6 +8,8 @@
  * import crypto from "crypto";
  */
 
+import { secureShuffle, secureWeightedPick } from "sc-core-rng";
+import crypto from "crypto";
 import { Result } from "../models/rounds";
 
 export const generateResult = (): Result => {

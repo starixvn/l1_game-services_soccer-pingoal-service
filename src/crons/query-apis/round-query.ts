@@ -1,4 +1,5 @@
 import { Core } from "sc-game-base";
+import { MODEL_NAME_PREFIX } from "../../constants";
 
 export class RoundQuery extends Core.QueryApis.RoundQuery {
     private readonly betsRepository: any;
@@ -16,38 +17,37 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
         return super.getList(limit);
     }
 
-    private async getPlayerRounds(limit: number, userid: string): Promise<any[]>  {
-        const bets = await this.betsRepository
-            .find(
-                { 
+    private async getPlayerRounds(limit: number, userid: string): Promise<any[]> {
+        const userBetsWithRounds = await this.betsRepository.aggregate([
+            {
+                $match: {
                     playerId: userid,
-                    paid: true 
-                },
-                { roundId: 1 },
-                { 
-                    sort: { _id: -1 },
-                    limit: limit 
+                    paid: true
                 }
-            )
-            .lean()
-            .exec();
+            },
+            {
+                $sort: { _id: -1 }
+            },
+            {
+                $limit: limit
+            },
+            {
+                $lookup: {
+                    from: `${MODEL_NAME_PREFIX}_rounds`,
+                    localField: 'roundId',
+                    foreignField: 'id',
+                    as: 'round'
+                }
+            },
+            {
+                $unwind: '$round'
+            }
+        ]);
 
-        // 取出所有 roundId
-        const roundIds = bets.map((bet: { roundId: number }) => bet.roundId);
-
-        // 用這些 roundId 去查 rounds 表
-        const rounds = await this.roundsRepository
-            .find(
-                { id: { $in: roundIds } },
-                {},
-                { sort: { _id: -1 } }
-            )
-            .lean()
-            .exec();
-
-        return rounds.map((round: any) => {
-            const result = round.result ?? this.convertResult(round);
-            const settlementResult = round.settlementResult ?? this.convertSettlementResult(result);
+        return userBetsWithRounds.map((item: any) => {
+            const roundData = item.round;
+            const result = roundData.result ?? this.convertResult(roundData);
+            const settlementResult = roundData.settlementResult ?? this.convertSettlementResult(result);
 
             return {
                 settlementResult,

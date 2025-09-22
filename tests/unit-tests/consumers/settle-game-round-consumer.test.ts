@@ -50,8 +50,13 @@ describe("SettleGameRoundConsumer", () => {
         settleGameRoundConsumer = new SettleGameRoundConsumer({} as any);
         
         // Mock roundsRepository directly on the instance for getNextRoundIdAtomically
+        const mockFindOne = {
+            lean: jest.fn().mockReturnThis(),
+            exec: jest.fn().mockResolvedValue({ id: 122 }) // Return a round with id 122 so next will be 123
+        };
+        
         const mockRoundsRepository = {
-            findOneAndUpdate: jest.fn().mockResolvedValue({ sequence: 123 }),
+            findOne: jest.fn().mockReturnValue(mockFindOne),
             create: jest.fn().mockResolvedValue({ id: 123, time: new Date() })
         };
         
@@ -103,7 +108,7 @@ describe("SettleGameRoundConsumer", () => {
         it("should clean up selections even if settleRound throws error", async () => {
             const selections = { redTunnel: 3, blueTunnel: 5 };
             
-            // Mock settleRound to throw error
+            // Mock settleRound to throw error - must be done before calling settleRoundWithSelections
             const mockSettleRound = jest.fn().mockRejectedValue(new Error("Settlement error"));
             settleGameRoundConsumer.settleRound = mockSettleRound;
             
@@ -307,7 +312,7 @@ describe("SettleGameRoundConsumer", () => {
                 mockGenerateResult.mockReturnValue(playerResult);
                 mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
 
-                // Mock the base settleRound method
+                // Mock the base settleRound method - must be done before calling settleRoundWithSelections
                 const mockSettleRound = jest.fn().mockResolvedValue(undefined);
                 settleGameRoundConsumer.settleRound = mockSettleRound;
 

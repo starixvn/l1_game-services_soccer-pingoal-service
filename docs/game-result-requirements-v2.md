@@ -241,3 +241,4 @@ if (Math.abs(totalProbability - 1.0) > 0.001) {
 
 This new approach provides more predictable outcome distributions while maintaining variety in specific scores within each outcome category.
 
+

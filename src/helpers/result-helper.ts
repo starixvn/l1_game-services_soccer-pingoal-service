@@ -149,9 +149,10 @@ export const generateResult = (playerSelections: PlayerTunnelSelections, roundId
     // Generate video index based on available videos for the selected score
     const videoIndex = generateVideoIndex(tunnelKey, selectedScoreKey);
 
-    const video = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}_${videoIndex}.mp4`;
-  
-    const sha256Video = crypto.createHash("sha256").update(`${video}`).digest("hex");
+    const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;
+    const videoName = crypto.createHash("sha256").update(`${rawVideoName}`).digest("hex");
+    const video = `soccerpingoal/${videoName}.m3u8`
+    
 
     // Store player's specified tunnel choices and generated scores in the result
     return {
@@ -159,7 +160,7 @@ export const generateResult = (playerSelections: PlayerTunnelSelections, roundId
         blue: blueScore,                       // Score from outcome-based selection
         redTunnel: playerSelections.redTunnel,  // Player's specified red tunnel choice
         blueTunnel: playerSelections.blueTunnel, // Player's specified blue tunnel choice
-        video: sha256Video,
+        video: video,
     };
 };
 

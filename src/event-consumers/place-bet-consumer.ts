@@ -17,52 +17,34 @@ import { BET_CHOICES } from "../constants";
 
 export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetConsumer {
     validateBetRequestParams(request: any) {
-        const { betChoice, amount, redTunnel, blueTunnel } = request;
-
-        // Get valid bet choices for validation
-        const validBetChoices = Object.values(BET_CHOICES);
+        const { redTunnel, blueTunnel } = request;
 
         return [
-            // Amount validation
-            {
-                failure: !amount || amount <= 0,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "Amount is required and must be greater than 0" }),
-            },
-            // BetChoice presence validation
-            {
-                failure: !betChoice,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "BetChoice is required" }),
-            },
-            // BetChoice value validation - must be one of valid choices
-            {
-                failure: betChoice && !validBetChoices.includes(betChoice),
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { 
-                    message: `BetChoice must be one of: ${validBetChoices.join(', ')}. Received: ${betChoice}` 
-                }),
-            },
+            // Use parent's basic amount and betChoice validation
+            ...super.validateBetRequestParams(request),
             // Validation for tunnel properties presence
             {
                 failure: redTunnel === undefined || redTunnel === null,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "redTunnel is required" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             {
                 failure: blueTunnel === undefined || blueTunnel === null,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "blueTunnel is required" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             // Validation for tunnel range (1-6)
             {
                 failure: redTunnel !== undefined && redTunnel !== null && (redTunnel < 1 || redTunnel > 6 || !Number.isInteger(redTunnel)),
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "redTunnel must be an integer between 1 and 6" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             {
                 failure: blueTunnel !== undefined && blueTunnel !== null && (blueTunnel < 1 || blueTunnel > 6 || !Number.isInteger(blueTunnel)),
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "blueTunnel must be an integer between 1 and 6" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             // Validation that player's tunnel selections are different
             {
                 failure: redTunnel !== undefined && blueTunnel !== undefined && 
                         redTunnel !== null && blueTunnel !== null && redTunnel === blueTunnel,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { message: "redTunnel and blueTunnel selections cannot be the same" }),
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
         ];
     }

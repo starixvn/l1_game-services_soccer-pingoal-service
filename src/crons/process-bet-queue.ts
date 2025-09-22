@@ -62,23 +62,6 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         }
     }
 
-    /**
-     * Get a new unique round ID for each bet
-     * Used when you need a fresh round ID for betting operations
-     */
-    async getNewRoundForBetting(): Promise<number> {
-        return this.generateNewRoundId();
-    }
-
-    /**
-     * Public method to be called before processing any bet to ensure unique roundId
-     * Prepares a new round ID and logs the preparation for tracking purposes
-     */
-    async prepareNewRoundForBet(): Promise<number> {
-        const newRoundId = await this.generateNewRoundId();
-        console.log(`Prepared new round ID: ${newRoundId} for incoming bet`);
-        return newRoundId;
-    }
 
     /**
      * Handle successful bet processing and immediate settlement
@@ -91,13 +74,11 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 
         // For single-player style, each bet gets its own round and should be settled immediately
         try {
-            // Pass player's specified tunnel choices to settlement consumer
-            this.settleGameRoundConsumer.setPlayerTunnelSelections({
+            // Pass player's specified tunnel choices directly to settlement method (thread-safe)
+            await this.settleGameRoundConsumer.settleRoundWithSelections({
                 redTunnel: bet.redTunnel,
                 blueTunnel: bet.blueTunnel
             });
-            
-            await this.settleGameRoundConsumer.settleRound();
             console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}`);
         } catch (error) {
             console.error(`Settlement failed for round ${roundId}:`, error);

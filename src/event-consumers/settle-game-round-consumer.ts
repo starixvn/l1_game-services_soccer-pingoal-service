@@ -25,11 +25,31 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     
     /**
      * Set the current player's tunnel selections before settlement
+     * @deprecated Use settleRoundWithSelections instead to avoid race conditions
      * This should be called by ProcessBetQueue before settling the round
      */
     setPlayerTunnelSelections(selections: PlayerTunnelSelections): void {
         this.currentPlayerSelections = selections;
         console.log(`Set player tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}`);
+    }
+    
+    /**
+     * Settle a round with specific tunnel selections (thread-safe)
+     * This method avoids race conditions by passing selections as parameters instead of using singleton state
+     */
+    async settleRoundWithSelections(selections: PlayerTunnelSelections): Promise<void> {
+        console.log(`Starting settlement for round ${this.gameData.roundId} with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}`);
+        
+        // Temporarily set selections for generateResult method
+        this.currentPlayerSelections = selections;
+        
+        try {
+            // Call the base class settleRound method
+            await this.settleRound();
+        } finally {
+            // Always clean up state after settlement
+            this.currentPlayerSelections = null;
+        }
     }
     
     /**
@@ -47,8 +67,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         // Generate result with player's specified tunnel choices
         const result = generateResult(this.currentPlayerSelections, this.gameData.roundId);
         
-        // Clear selections after use
-        this.currentPlayerSelections = null;
+        // Note: Don't clear selections here as settleRoundWithSelections handles cleanup
         
         return result;
     }

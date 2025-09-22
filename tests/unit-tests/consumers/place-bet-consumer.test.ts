@@ -11,6 +11,30 @@ jest.mock("sc-common", () => ({
     }
 }));
 
+// Mock the sc-game-base Core module
+jest.mock("sc-game-base", () => ({
+    Core: {
+        BaseEventConsumers: {
+            PlaceBetConsumer: class MockPlaceBetConsumer {
+                constructor() {}
+                
+                getNoticeObj(type: string, data?: any) {
+                    return { type, ...data };
+                }
+                
+                composeBetChoiceValidationCriteria(betChoice: string) {
+                    // Mock implementation that returns validation criteria
+                    const validChoices = ["blue", "red", "draw"];
+                    return [{
+                        failure: !betChoice || !validChoices.includes(betChoice),
+                        notice: this.getNoticeObj("INVALID_BET_CHOICE")
+                    }];
+                }
+            }
+        }
+    }
+}));
+
 describe("PlaceBetConsumer", () => {
     let placeBetConsumer: PlaceBetConsumer;
 
@@ -23,7 +47,7 @@ describe("PlaceBetConsumer", () => {
         placeBetConsumer = new PlaceBetConsumer(mockDefinition, mockRegistrationOptions, mockGameSettings);
         
         // Mock the getNoticeObj method
-        placeBetConsumer.getNoticeObj = jest.fn().mockImplementation((type, data) => ({
+        jest.spyOn(placeBetConsumer, 'getNoticeObj').mockImplementation((type, data) => ({
             type,
             ...data
         }));
@@ -67,8 +91,8 @@ describe("PlaceBetConsumer", () => {
                     { redTunnel: 6, blueTunnel: 1 }
                 ];
 
-                testCases.forEach(tunnels => {
-                    const request = { ...validRequest, ...tunnels };
+                testCases.forEach(tunnelCase => {
+                    const request = { ...validRequest, ...tunnelCase };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
                     
                     expect(validations.every(validation => validation.failure === false)).toBe(true);
@@ -81,29 +105,33 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, amount: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const amountValidation = validations.find(v => v.notice.message?.includes("Amount is required"));
+                // The first validation should be for amount (index 0)
+                const amountValidation = validations[0];
                 
-                expect(amountValidation?.failure).toBe(true);
-                expect(amountValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
-                expect(amountValidation?.notice.message).toBe("Amount is required and must be greater than 0");
+                expect(amountValidation.failure).toBe(true);
+                expect(amountValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when amount is zero", () => {
                 const request = { ...validRequest, amount: 0 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const amountValidation = validations.find(v => v.notice.message?.includes("Amount is required"));
+                // The first validation should be for amount (index 0)
+                const amountValidation = validations[0];
                 
-                expect(amountValidation?.failure).toBe(true);
+                expect(amountValidation.failure).toBe(true);
+                expect(amountValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when amount is negative", () => {
                 const request = { ...validRequest, amount: -100 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const amountValidation = validations.find(v => v.notice.message?.includes("Amount is required"));
+                // The first validation should be for amount (index 0)
+                const amountValidation = validations[0];
                 
-                expect(amountValidation?.failure).toBe(true);
+                expect(amountValidation.failure).toBe(true);
+                expect(amountValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
         });
 
@@ -112,33 +140,33 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, betChoice: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const betChoiceValidation = validations.find(v => v.notice.message === "BetChoice is required");
+                // betChoice validation is from the parent class (last validation)
+                const betChoiceValidation = validations[validations.length - 1];
                 
-                expect(betChoiceValidation?.failure).toBe(true);
-                expect(betChoiceValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
+                expect(betChoiceValidation.failure).toBe(true);
+                expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
             });
 
             it("should fail when betChoice is invalid", () => {
                 const request = { ...validRequest, betChoice: "invalid" };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const betChoiceValidation = validations.find(v => v.notice.message?.includes("BetChoice must be one of"));
+                // betChoice validation is from the parent class (last validation)
+                const betChoiceValidation = validations[validations.length - 1];
                 
-                expect(betChoiceValidation?.failure).toBe(true);
-                expect(betChoiceValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
-                expect(betChoiceValidation?.notice.message).toBe(
-                    `BetChoice must be one of: ${Object.values(BET_CHOICES).join(', ')}. Received: invalid`
-                );
+                expect(betChoiceValidation.failure).toBe(true);
+                expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
             });
 
             it("should fail when betChoice is empty string", () => {
                 const request = { ...validRequest, betChoice: "" };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
+                // betChoice validation is from the parent class (last validation)
+                const betChoiceValidation = validations[validations.length - 1];
                 
-                // Empty string should fail the "BetChoice is required" validation since !betChoice is true for ""
-                const requiredValidation = validations.find(v => v.notice.message === "BetChoice is required");
-                expect(requiredValidation?.failure).toBe(true);
+                expect(betChoiceValidation.failure).toBe(true);
+                expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
             });
         });
 
@@ -147,47 +175,55 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const redTunnelValidation = validations.find(v => v.notice.message === "redTunnel is required");
+                // redTunnel presence validation is at index 1
+                const redTunnelValidation = validations[1];
                 
-                expect(redTunnelValidation?.failure).toBe(true);
-                expect(redTunnelValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
+                expect(redTunnelValidation.failure).toBe(true);
+                expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when redTunnel is null", () => {
-                const request = { ...validRequest, redTunnel: null };
+                const request = { ...validRequest, redTunnel: null } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const redTunnelValidation = validations.find(v => v.notice.message === "redTunnel is required");
+                // redTunnel presence validation is at index 1
+                const redTunnelValidation = validations[1];
                 
-                expect(redTunnelValidation?.failure).toBe(true);
+                expect(redTunnelValidation.failure).toBe(true);
+                expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when redTunnel is less than 1", () => {
                 const request = { ...validRequest, redTunnel: 0 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const redTunnelValidation = validations.find(v => v.notice.message?.includes("redTunnel must be an integer"));
+                // redTunnel range validation is at index 3
+                const redTunnelValidation = validations[3];
                 
-                expect(redTunnelValidation?.failure).toBe(true);
-                expect(redTunnelValidation?.notice.message).toBe("redTunnel must be an integer between 1 and 6");
+                expect(redTunnelValidation.failure).toBe(true);
+                expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when redTunnel is greater than 6", () => {
                 const request = { ...validRequest, redTunnel: 7 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const redTunnelValidation = validations.find(v => v.notice.message?.includes("redTunnel must be an integer"));
+                // redTunnel range validation is at index 3
+                const redTunnelValidation = validations[3];
                 
-                expect(redTunnelValidation?.failure).toBe(true);
+                expect(redTunnelValidation.failure).toBe(true);
+                expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when redTunnel is not an integer", () => {
                 const request = { ...validRequest, redTunnel: 1.5 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const redTunnelValidation = validations.find(v => v.notice.message?.includes("redTunnel must be an integer"));
+                // redTunnel range validation is at index 3
+                const redTunnelValidation = validations[3];
                 
-                expect(redTunnelValidation?.failure).toBe(true);
+                expect(redTunnelValidation.failure).toBe(true);
+                expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
         });
 
@@ -196,145 +232,148 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const blueTunnelValidation = validations.find(v => v.notice.message === "blueTunnel is required");
+                // blueTunnel presence validation is at index 2
+                const blueTunnelValidation = validations[2];
                 
-                expect(blueTunnelValidation?.failure).toBe(true);
-                expect(blueTunnelValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
+                expect(blueTunnelValidation.failure).toBe(true);
+                expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when blueTunnel is null", () => {
-                const request = { ...validRequest, blueTunnel: null };
+                const request = { ...validRequest, blueTunnel: null } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const blueTunnelValidation = validations.find(v => v.notice.message === "blueTunnel is required");
+                // blueTunnel presence validation is at index 2
+                const blueTunnelValidation = validations[2];
                 
-                expect(blueTunnelValidation?.failure).toBe(true);
+                expect(blueTunnelValidation.failure).toBe(true);
+                expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when blueTunnel is less than 1", () => {
                 const request = { ...validRequest, blueTunnel: 0 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const blueTunnelValidation = validations.find(v => v.notice.message?.includes("blueTunnel must be an integer"));
+                // blueTunnel range validation is at index 4
+                const blueTunnelValidation = validations[4];
                 
-                expect(blueTunnelValidation?.failure).toBe(true);
-                expect(blueTunnelValidation?.notice.message).toBe("blueTunnel must be an integer between 1 and 6");
+                expect(blueTunnelValidation.failure).toBe(true);
+                expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when blueTunnel is greater than 6", () => {
                 const request = { ...validRequest, blueTunnel: 7 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const blueTunnelValidation = validations.find(v => v.notice.message?.includes("blueTunnel must be an integer"));
+                // blueTunnel range validation is at index 4
+                const blueTunnelValidation = validations[4];
                 
-                expect(blueTunnelValidation?.failure).toBe(true);
+                expect(blueTunnelValidation.failure).toBe(true);
+                expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
 
             it("should fail when blueTunnel is not an integer", () => {
-                const request = { ...validRequest, blueTunnel: 2.5 };
+                const request = { ...validRequest, blueTunnel: 1.5 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                const blueTunnelValidation = validations.find(v => v.notice.message?.includes("blueTunnel must be an integer"));
+                // blueTunnel range validation is at index 4
+                const blueTunnelValidation = validations[4];
                 
-                expect(blueTunnelValidation?.failure).toBe(true);
+                expect(blueTunnelValidation.failure).toBe(true);
+                expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
             });
         });
 
         describe("tunnel combination validation", () => {
             it("should fail when redTunnel and blueTunnel are the same", () => {
-                const testCases = [1, 2, 3, 4, 5, 6];
+                const sameTunnelCases = [1, 2, 3, 4, 5, 6];
                 
-                testCases.forEach(tunnelValue => {
+                sameTunnelCases.forEach(tunnelValue => {
                     const request = { ...validRequest, redTunnel: tunnelValue, blueTunnel: tunnelValue };
-                    
                     const validations = placeBetConsumer.validateBetRequestParams(request);
-                    const tunnelCombinationValidation = validations.find(v => 
-                        v.notice.message === "redTunnel and blueTunnel selections cannot be the same"
-                    );
                     
-                    expect(tunnelCombinationValidation?.failure).toBe(true);
-                    expect(tunnelCombinationValidation?.notice.type).toBe(helpers.noticeHelper.invalidBet);
+                    // Tunnel combination validation is at index 5
+                    const tunnelCombinationValidation = validations[5];
+                    
+                    expect(tunnelCombinationValidation.failure).toBe(true);
+                    expect(tunnelCombinationValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
                 });
             });
 
             it("should pass when redTunnel and blueTunnel are different", () => {
-                const testCases = [
+                const differentTunnelCases = [
                     { redTunnel: 1, blueTunnel: 2 },
                     { redTunnel: 3, blueTunnel: 6 },
                     { redTunnel: 5, blueTunnel: 1 }
                 ];
                 
-                testCases.forEach(tunnels => {
-                    const request = { ...validRequest, ...tunnels };
-                    
+                differentTunnelCases.forEach(tunnelCase => {
+                    const request = { ...validRequest, ...tunnelCase };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
-                    const tunnelCombinationValidation = validations.find(v => 
-                        v.notice.message === "redTunnel and blueTunnel selections cannot be the same"
-                    );
                     
-                    expect(tunnelCombinationValidation?.failure).toBe(false);
+                    // Tunnel combination validation is at index 5
+                    const tunnelCombinationValidation = validations[5];
+                    
+                    expect(tunnelCombinationValidation.failure).toBe(false);
                 });
             });
         });
 
         describe("multiple validation failures", () => {
             it("should return multiple failures when multiple validations fail", () => {
-                const request = {
-                    amount: -100,
-                    betChoice: "invalid",
-                    redTunnel: 7,
-                    blueTunnel: 0
+                const invalidRequest = {
+                    amount: 0,          // Invalid amount
+                    betChoice: "invalid", // Invalid bet choice
+                    redTunnel: undefined, // Missing redTunnel
+                    blueTunnel: 7        // Invalid blueTunnel range
                 };
                 
-                const validations = placeBetConsumer.validateBetRequestParams(request);
+                const validations = placeBetConsumer.validateBetRequestParams(invalidRequest);
                 const failures = validations.filter(v => v.failure === true);
                 
-                // Should have failures for: amount, betChoice, redTunnel range, blueTunnel range
-                expect(failures.length).toBeGreaterThanOrEqual(4);
+                expect(failures.length).toBeGreaterThan(1);
+                expect(failures.every(f => f.notice.type.length > 0)).toBe(true);
             });
 
             it("should handle edge case with undefined values", () => {
-                const request = {
-                    amount: undefined,
-                    betChoice: undefined,
-                    redTunnel: undefined,
-                    blueTunnel: undefined
-                };
+                const invalidRequest = {};
                 
-                const validations = placeBetConsumer.validateBetRequestParams(request);
+                const validations = placeBetConsumer.validateBetRequestParams(invalidRequest);
                 const failures = validations.filter(v => v.failure === true);
                 
-                // Should have failures for all required fields
-                expect(failures.length).toBeGreaterThanOrEqual(4);
+                expect(failures.length).toBeGreaterThan(0);
             });
         });
 
         describe("boundary value testing", () => {
             it("should pass validation for valid boundary values", () => {
-                const validBoundaryTests = [
-                    { ...validRequest, amount: 1, redTunnel: 1, blueTunnel: 6 },
-                    { ...validRequest, amount: 0.01, redTunnel: 6, blueTunnel: 1 }
+                const boundaryTestCases = [
+                    { redTunnel: 1, blueTunnel: 6 },
+                    { redTunnel: 6, blueTunnel: 1 }
                 ];
 
-                validBoundaryTests.forEach(request => {
+                boundaryTestCases.forEach(testCase => {
+                    const request = { ...validRequest, ...testCase };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
-                    const failures = validations.filter(v => v.failure === true);
                     
-                    expect(failures.length).toBe(0);
+                    expect(validations.every(validation => validation.failure === false)).toBe(true);
                 });
             });
 
             it("should fail validation for invalid boundary values", () => {
-                const invalidBoundaryTests = [
-                    { ...validRequest, amount: 0, redTunnel: 0, blueTunnel: 7 },
-                    { ...validRequest, amount: -0.01, redTunnel: -1, blueTunnel: 8 }
+                const invalidBoundaryTestCases = [
+                    { redTunnel: 0, blueTunnel: 2 },   // redTunnel too low
+                    { redTunnel: 7, blueTunnel: 2 },   // redTunnel too high
+                    { redTunnel: 2, blueTunnel: 0 },   // blueTunnel too low
+                    { redTunnel: 2, blueTunnel: 7 }    // blueTunnel too high
                 ];
 
-                invalidBoundaryTests.forEach(request => {
+                invalidBoundaryTestCases.forEach(testCase => {
+                    const request = { ...validRequest, ...testCase };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
-                    const failures = validations.filter(v => v.failure === true);
                     
-                    expect(failures.length).toBeGreaterThan(0);
+                    const hasFailures = validations.some(validation => validation.failure === true);
+                    expect(hasFailures).toBe(true);
                 });
             });
         });

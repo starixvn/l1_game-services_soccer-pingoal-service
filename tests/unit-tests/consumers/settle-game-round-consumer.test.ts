@@ -59,6 +59,45 @@ describe("SettleGameRoundConsumer", () => {
         consoleWarnSpy.mockRestore();
     });
 
+    describe("settleRoundWithSelections", () => {
+        it("should call settleRound and clean up selections", async () => {
+            const selections = { redTunnel: 2, blueTunnel: 4 };
+            
+            // Mock the base settleRound method
+            const mockSettleRound = jest.fn().mockResolvedValue(undefined);
+            settleGameRoundConsumer.settleRound = mockSettleRound;
+            
+            await settleGameRoundConsumer.settleRoundWithSelections(selections);
+            
+            // Verify settleRound was called
+            expect(mockSettleRound).toHaveBeenCalled();
+            
+            // Verify logging
+            expect(consoleLogSpy).toHaveBeenCalledWith(
+                "Starting settlement for round 123 with tunnel selections: red=2, blue=4"
+            );
+        });
+
+        it("should clean up selections even if settleRound throws error", async () => {
+            const selections = { redTunnel: 3, blueTunnel: 5 };
+            
+            // Mock settleRound to throw error
+            const mockSettleRound = jest.fn().mockRejectedValue(new Error("Settlement error"));
+            settleGameRoundConsumer.settleRound = mockSettleRound;
+            
+            await expect(settleGameRoundConsumer.settleRoundWithSelections(selections))
+                .rejects.toThrow("Settlement error");
+            
+            // After error, selections should still be cleared
+            const fallbackResult = { red: 0, blue: 0, redTunnel: -1, blueTunnel: -1, video: "fallback" };
+            mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
+            
+            const result = settleGameRoundConsumer.generateResult();
+            expect(result).toEqual(fallbackResult);
+            expect(mockDefinitionGenerateResult).toHaveBeenCalled();
+        });
+    });
+
     describe("setPlayerTunnelSelections", () => {
         it("should set player tunnel selections correctly", () => {
             const selections = {
@@ -127,29 +166,20 @@ describe("SettleGameRoundConsumer", () => {
                 );
             });
 
-            it("should clear player selections after generating result", () => {
+            it("should NOT clear player selections after generating result (handled by settleRoundWithSelections)", () => {
                 const selections = { redTunnel: 1, blueTunnel: 2 };
                 
                 settleGameRoundConsumer.setPlayerTunnelSelections(selections);
                 settleGameRoundConsumer.generateResult();
 
-                // Call generateResult again - should fall back to definition.generateResult
-                const fallbackResult: Result = {
-                    red: 0,
-                    blue: 3,
-                    redTunnel: -1,
-                    blueTunnel: -1,
-                    video: "fallback-video"
-                };
-                mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
-
+                // Call generateResult again - should still use selections since generateResult no longer clears them
                 const secondResult = settleGameRoundConsumer.generateResult();
 
-                expect(mockDefinitionGenerateResult).toHaveBeenCalled();
-                expect(secondResult).toEqual(fallbackResult);
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    "No player tunnel selections available, using legacy random generation"
-                );
+                // Should still use the selections, not fall back
+                expect(mockGenerateResult).toHaveBeenCalledTimes(2);
+                expect(secondResult).toEqual(mockResult);
+                expect(mockDefinitionGenerateResult).not.toHaveBeenCalled();
+                expect(consoleWarnSpy).not.toHaveBeenCalled();
             });
 
             it("should handle multiple generate result calls with different selections", () => {
@@ -241,7 +271,7 @@ describe("SettleGameRoundConsumer", () => {
         });
 
         describe("integration scenarios", () => {
-            it("should handle complete workflow: set selections -> generate -> clear -> fallback", () => {
+            it("should handle complete workflow with settleRoundWithSelections: set selections -> generate -> clear", async () => {
                 const selections = { redTunnel: 1, blueTunnel: 2 };
                 const playerResult = { ...mockResult, redTunnel: 1, blueTunnel: 2 };
                 const fallbackResult = {
@@ -255,17 +285,16 @@ describe("SettleGameRoundConsumer", () => {
                 mockGenerateResult.mockReturnValue(playerResult);
                 mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
 
-                // Step 1: Set selections and generate result
-                settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                const result1 = settleGameRoundConsumer.generateResult();
+                // Mock the base settleRound method
+                const mockSettleRound = jest.fn().mockResolvedValue(undefined);
+                settleGameRoundConsumer.settleRound = mockSettleRound;
 
-                expect(result1).toEqual(playerResult);
-                expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123);
-                expect(consoleLogSpy).toHaveBeenCalledWith(
-                    "Generating result for round 123 with player tunnel selections"
-                );
+                // Step 1: Use settleRoundWithSelections (thread-safe method)
+                await settleGameRoundConsumer.settleRoundWithSelections(selections);
 
-                // Step 2: Generate result again - should fallback
+                expect(mockSettleRound).toHaveBeenCalled();
+
+                // Step 2: After settlement, selections should be cleared - generate result should fallback
                 const result2 = settleGameRoundConsumer.generateResult();
 
                 expect(result2).toEqual(fallbackResult);

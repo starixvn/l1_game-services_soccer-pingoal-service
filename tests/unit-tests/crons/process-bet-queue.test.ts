@@ -69,7 +69,8 @@ describe("ProcessBetQueue", () => {
         // Mock SettleGameRoundConsumer
         mockSettleGameRoundConsumer = {
             setPlayerTunnelSelections: jest.fn(),
-            settleRound: jest.fn()
+            settleRound: jest.fn(),
+            settleRoundWithSelections: jest.fn()
         } as Partial<SettleGameRoundConsumer>;
 
         mockDependencies = {
@@ -83,100 +84,8 @@ describe("ProcessBetQueue", () => {
         jest.clearAllMocks();
     });
 
-    describe("generateNewRoundId", () => {
-        it("should generate new round ID based on database when rounds exist", async () => {
-            // Setup: Mock database to return a round with id 500
-            const mockLastRound = { id: 500 };
-            mockRoundsRepository.findOne.mockReturnValue({
-                lean: () => ({
-                    exec: async () => mockLastRound
-                })
-            });
 
-            // Execute private method via public method
-            const newRoundId = await processBetQueue.getNewRoundForBetting();
 
-            // Verify
-            expect(mockRoundsRepository.findOne).toHaveBeenCalledWith({}, "id", { sort: { id: -1 } });
-            expect(newRoundId).toBe(501); // 500 + 1
-            expect(processBetQueue['gameData'].roundId).toBe(501);
-            expect(console.log).toHaveBeenCalledWith("Generated new round ID: 501");
-        });
-
-        it("should generate new round ID based on gameData when no rounds exist", async () => {
-            // Setup: Mock database to return null (no rounds)
-            mockRoundsRepository.findOne.mockReturnValue({
-                lean: () => ({
-                    exec: async () => null
-                })
-            });
-
-            // Set initial gameData roundId
-            processBetQueue['gameData'].roundId = 200;
-
-            // Execute
-            const newRoundId = await processBetQueue.getNewRoundForBetting();
-
-            // Verify
-            expect(mockRoundsRepository.findOne).toHaveBeenCalledWith({}, "id", { sort: { id: -1 } });
-            expect(newRoundId).toBe(201); // 200 + 1
-            expect(processBetQueue['gameData'].roundId).toBe(201);
-            expect(console.log).toHaveBeenCalledWith("Generated new round ID: 201");
-        });
-
-        it("should handle database errors gracefully", async () => {
-            // Setup: Mock database to throw error
-            mockRoundsRepository.findOne.mockReturnValue({
-                lean: () => ({
-                    exec: async () => {
-                        throw new Error("Database connection failed");
-                    }
-                })
-            });
-
-            // Execute and verify it throws
-            await expect(processBetQueue.getNewRoundForBetting()).rejects.toThrow("Database connection failed");
-        });
-    });
-
-    describe("getNewRoundForBetting", () => {
-        it("should call generateNewRoundId and return the result", async () => {
-            // Setup: Mock database to return a round
-            const mockLastRound = { id: 300 };
-            mockRoundsRepository.findOne.mockReturnValue({
-                lean: () => ({
-                    exec: async () => mockLastRound
-                })
-            });
-
-            // Execute
-            const result = await processBetQueue.getNewRoundForBetting();
-
-            // Verify
-            expect(result).toBe(301);
-            expect(mockRoundsRepository.findOne).toHaveBeenCalled();
-        });
-    });
-
-    describe("prepareNewRoundForBet", () => {
-        it("should prepare new round ID and log preparation message", async () => {
-            // Setup: Mock database to return a round
-            const mockLastRound = { id: 400 };
-            mockRoundsRepository.findOne.mockReturnValue({
-                lean: () => ({
-                    exec: async () => mockLastRound
-                })
-            });
-
-            // Execute
-            const result = await processBetQueue.prepareNewRoundForBet();
-
-            // Verify
-            expect(result).toBe(401);
-            expect(console.log).toHaveBeenCalledWith("Generated new round ID: 401");
-            expect(console.log).toHaveBeenCalledWith("Prepared new round ID: 401 for incoming bet");
-        });
-    });
 
     describe("handleSuccessBet", () => {
         let mockPlayer: Player;
@@ -225,15 +134,12 @@ describe("ProcessBetQueue", () => {
             expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet)
                 .toHaveBeenCalledWith(mockPlayer, mockBalance, roundId, mockBet);
 
-            // Verify tunnel selections were set
-            expect(mockSettleGameRoundConsumer.setPlayerTunnelSelections)
+            // Verify new thread-safe settlement method was called with tunnel selections
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
                 });
-
-            // Verify settlement was triggered
-            expect(mockSettleGameRoundConsumer.settleRound).toHaveBeenCalled();
 
             // Verify success logging
             expect(console.log).toHaveBeenCalledWith(`Successful bet by ${mockPlayer.profile.name} on round ${roundId}`);
@@ -244,7 +150,7 @@ describe("ProcessBetQueue", () => {
 
         it("should handle settlement errors gracefully", async () => {
             // Setup: Mock settlement to throw error
-            mockSettleGameRoundConsumer.settleRound.mockRejectedValue(new Error("Settlement failed"));
+            mockSettleGameRoundConsumer.settleRoundWithSelections.mockRejectedValue(new Error("Settlement failed"));
 
             // Execute - should not throw
             await expect(processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet))
@@ -254,15 +160,12 @@ describe("ProcessBetQueue", () => {
             expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet)
                 .toHaveBeenCalledWith(mockPlayer, mockBalance, roundId, mockBet);
 
-            // Verify tunnel selections were set
-            expect(mockSettleGameRoundConsumer.setPlayerTunnelSelections)
+            // Verify new settlement method was called with tunnel selections
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
                 });
-
-            // Verify settlement was attempted
-            expect(mockSettleGameRoundConsumer.settleRound).toHaveBeenCalled();
 
             // Verify error logging
             expect(console.error).toHaveBeenCalledWith(
@@ -271,10 +174,10 @@ describe("ProcessBetQueue", () => {
             );
         });
 
-        it("should handle tunnel selection errors gracefully", async () => {
-            // Setup: Mock setPlayerTunnelSelections to throw error
-            mockSettleGameRoundConsumer.setPlayerTunnelSelections.mockImplementation(() => {
-                throw new Error("Failed to set tunnel selections");
+        it("should handle settlement method errors gracefully", async () => {
+            // Setup: Mock settleRoundWithSelections to throw error
+            mockSettleGameRoundConsumer.settleRoundWithSelections.mockImplementation(() => {
+                throw new Error("Failed to settle round with selections");
             });
 
             // Execute - should not throw
@@ -308,8 +211,8 @@ describe("ProcessBetQueue", () => {
                 // Execute
                 await processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, testBet);
 
-                // Verify tunnel selections were set correctly
-                expect(mockSettleGameRoundConsumer.setPlayerTunnelSelections)
+                // Verify new settlement method was called with correct tunnel selections
+                expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
                     .toHaveBeenCalledWith({
                         redTunnel: tunnelCase.redTunnel,
                         blueTunnel: tunnelCase.blueTunnel
@@ -346,43 +249,16 @@ describe("ProcessBetQueue", () => {
                 blueTunnel: 5
             };
 
-            // Execute: Generate new round and process bet
-            const newRoundId = await processBetQueue.prepareNewRoundForBet();
-            await processBetQueue.handleSuccessBet(mockPlayer, { balance: 10000 }, newRoundId, mockBet);
+            // Execute: Process bet without separate round generation
+            // Note: Round ID is now automatically generated internally
+            await processBetQueue.handleSuccessBet(mockPlayer, { balance: 10000 }, 151, mockBet);
 
-            // Verify the complete workflow
-            expect(newRoundId).toBe(151); // 150 + 1
-            expect(mockSettleGameRoundConsumer.setPlayerTunnelSelections).toHaveBeenCalledWith({
+            // Verify the complete workflow uses the new thread-safe method
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith({
                 redTunnel: 2,
                 blueTunnel: 5
             });
-            expect(mockSettleGameRoundConsumer.settleRound).toHaveBeenCalled();
         });
 
-        it("should handle concurrent round generation correctly", async () => {
-            // Setup: Mock different database responses for concurrent calls
-            let callCount = 0;
-            mockRoundsRepository.findOne.mockImplementation(() => ({
-                lean: () => ({
-                    exec: async () => {
-                        callCount++;
-                        return { id: 200 + callCount }; // Simulate incrementing database state
-                    }
-                })
-            }));
-
-            // Execute multiple concurrent round generations
-            const promises = [
-                processBetQueue.getNewRoundForBetting(),
-                processBetQueue.getNewRoundForBetting(),
-                processBetQueue.getNewRoundForBetting()
-            ];
-
-            const results = await Promise.all(promises);
-
-            // Verify each call generated a unique round ID based on database state
-            expect(results).toEqual([202, 203, 204]); // Each call gets incremented database value + 1
-            expect(mockRoundsRepository.findOne).toHaveBeenCalledTimes(3);
-        });
     });
 });

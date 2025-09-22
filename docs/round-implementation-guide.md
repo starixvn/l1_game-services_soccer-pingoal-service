@@ -184,17 +184,11 @@ sequenceDiagram
 
 ## API Usage
 
-### 1. Generate New Round ID
+### Round ID Management
 
-```typescript
-// Method 1: For new bet preparation
-const newRoundId = await processBetQueue.prepareNewRoundForBet();
+Round IDs are now automatically generated internally by the `ProcessBetQueue` class. The private `generateNewRoundId()` method handles all round ID generation logic without requiring external method calls.
 
-// Method 2: Direct round ID generation
-const roundId = await processBetQueue.getNewRoundForBetting();
-```
-
-### 2. Access Current Round ID (PlaceBetConsumer)
+### Access Current Round ID (PlaceBetConsumer)
 
 ```typescript
 // In PlaceBetConsumer validation

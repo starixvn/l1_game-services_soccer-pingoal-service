@@ -3,7 +3,7 @@ import type { Socket } from "socket.io";
 import { Core } from "sc-game-base";
 
 import { getOrDefault, callAndForget } from "sc-game-base/src/core/game-management-api";
-import { SettleGameRoundConsumer } from "../event-consumers";
+import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
 
 interface BetPayload {
     amount: number;
@@ -12,8 +12,8 @@ interface BetPayload {
     roundId: number; // Unique round ID for each bet in single-player mode
     mode: string;
     receivedTime: Date;
-    redTunnel: number;
-    blueTunnel: number;
+    redTunnel: number;    // Player's specified red tunnel choice (1-6)
+    blueTunnel: number;   // Player's specified blue tunnel choice (1-6)
 }
 
 interface Player {
@@ -91,8 +91,14 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 
         // For single-player style, each bet gets its own round and should be settled immediately
         try {
+            // Pass player's specified tunnel choices to settlement consumer
+            this.settleGameRoundConsumer.setPlayerTunnelSelections({
+                redTunnel: bet.redTunnel,
+                blueTunnel: bet.blueTunnel
+            });
+            
             await this.settleGameRoundConsumer.settleRound();
-            console.log(`Settlement completed for round ${roundId}`);
+            console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}`);
         } catch (error) {
             console.error(`Settlement failed for round ${roundId}:`, error);
             // Note: Settlement failure shouldn't affect the bet processing result

@@ -25,7 +25,6 @@ interface Player {
  * Task List
  * 1. Query round history by player id, because this game is not support multiple players in one round
  * 2. remove remainingTime from payload
- * 3. get odds from gameConfigs
  */
 
 export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsumer {
@@ -42,12 +41,12 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
     // @ts-expect-error Intentionally omitting roundId from payload
     override async buildPayload(realPlayer: Player) {
         const user = await this.getUserInfo(realPlayer);
-        const { odds, originalOdds } = this.gameData.gameConfigs;
+        const { odds } = this.gameData.gameConfigs;
         const { exchangeRates } = this.gameData;
         const { session } = realPlayer;
         const rate = exchangeRates.code[session.currencyCode] * session.multiplier;
         const settings = this.gameData.currencyGroupGames.find((x) => x.groupId.toString() === session.currencyGroupId);
-        const gameConfigs = { ...settings, odds, originalOdds };
+        const gameConfigs = { ...settings, odds };
         const roundHistory = await this.roundQuery.getList(
             this.definition.numberOfRoundHistory,
             realPlayer.session.playerId

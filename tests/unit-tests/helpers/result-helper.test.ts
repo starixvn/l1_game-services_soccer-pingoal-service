@@ -49,8 +49,8 @@ describe("result-helper", () => {
             expect(result).toHaveProperty('blueTunnel', 2);
             expect(result).toHaveProperty('video');
             
-            // Verify video path format: soccerpingoal/{hash}.m3u8
-            expect(result.video).toMatch(/^soccerpingoal\/[a-f0-9]{64}\.m3u8$/);
+            // Verify video path format: {hash}.m3u8
+            expect(result.video).toMatch(/^[a-f0-9]{64}\.m3u8$/);
         });
 
         it("should use player tunnel selections correctly", () => {
@@ -118,8 +118,8 @@ describe("result-helper", () => {
 
             // Should generate different hashes due to different tunnel combinations
             expect(result1.video).not.toBe(result2.video);
-            expect(result1.video).toMatch(/^soccerpingoal\/[a-f0-9]{64}\.m3u8$/);
-            expect(result2.video).toMatch(/^soccerpingoal\/[a-f0-9]{64}\.m3u8$/);
+            expect(result1.video).toMatch(/^[a-f0-9]{64}\.m3u8$/);
+            expect(result2.video).toMatch(/^[a-f0-9]{64}\.m3u8$/);
         });
 
         it("should throw error for invalid tunnel configuration", () => {
@@ -404,7 +404,7 @@ describe("result-helper", () => {
             expect(result.blueTunnel).toBe(3);
             
             // Verify that the video path is generated correctly
-            expect(result.video).toMatch(/^soccerpingoal\/[a-f0-9]{64}\.m3u8$/);
+            expect(result.video).toMatch(/^[a-f0-9]{64}\.m3u8$/);
         });
 
         it("should throw error when no valid scores found for specific outcome", async () => {

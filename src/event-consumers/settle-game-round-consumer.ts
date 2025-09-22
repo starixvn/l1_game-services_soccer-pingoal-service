@@ -99,7 +99,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         } catch (error) {
             // If settlement fails, restore original roundId
             this.gameData.roundId = originalRoundId;
-            console.error(`Failed to settle round ${assignedRoundId}:`, error);
+         
             throw error;
         } finally {
             // Always clean up state after settlement

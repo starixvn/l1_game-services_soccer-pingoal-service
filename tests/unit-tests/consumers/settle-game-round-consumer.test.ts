@@ -74,7 +74,7 @@ describe("SettleGameRoundConsumer", () => {
             
             // Verify logging
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Starting settlement for round 123 with tunnel selections: red=2, blue=4, player=unknown"
+                "Starting settlement for pre-assigned round 124 with tunnel selections: red=2, blue=4, player=unknown"
             );
         });
 

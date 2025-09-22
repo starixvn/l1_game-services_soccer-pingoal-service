@@ -1,7 +1,8 @@
 import { 
     generateResult, 
     generateResultLegacy, 
-    getSettlementResult 
+    getSettlementResult,
+    classifyScore 
 } from "../../../src/helpers/result-helper";
 import { Result } from "../../../src/models/rounds";
 
@@ -451,6 +452,48 @@ describe("result-helper", () => {
                 jest.dontMock("../../../src/constants");
                 jest.resetModules();
             }
+        });
+    });
+
+    describe("classifyScore", () => {
+        it("should return 'red' when red score is higher", () => {
+            expect(classifyScore("R15B10")).toBe('red');
+            expect(classifyScore("R1B0")).toBe('red');
+            expect(classifyScore("R100B50")).toBe('red');
+        });
+
+        it("should return 'blue' when blue score is higher", () => {
+            expect(classifyScore("R8B12")).toBe('blue');
+            expect(classifyScore("R0B1")).toBe('blue');
+            expect(classifyScore("R25B30")).toBe('blue');
+        });
+
+        it("should return 'draw' when scores are equal", () => {
+            expect(classifyScore("R10B10")).toBe('draw');
+            expect(classifyScore("R0B0")).toBe('draw');
+            expect(classifyScore("R15B15")).toBe('draw');
+        });
+
+        it("should return null for invalid score format", () => {
+            // Test the if (!match) condition - this is the uncovered part
+            expect(classifyScore("INVALID_FORMAT")).toBe(null);
+            expect(classifyScore("R10")).toBe(null);
+            expect(classifyScore("B10")).toBe(null);
+            expect(classifyScore("10B10")).toBe(null);
+            expect(classifyScore("R10B")).toBe(null);
+            expect(classifyScore("RaB10")).toBe(null);
+            expect(classifyScore("R10Bb")).toBe(null);
+            expect(classifyScore("")).toBe(null);
+            expect(classifyScore("RB")).toBe(null);
+            expect(classifyScore("random_string")).toBe(null);
+            expect(classifyScore("R-5B10")).toBe(null); // Negative numbers
+            expect(classifyScore("R10B-3")).toBe(null); // Negative numbers
+        });
+
+        it("should handle edge cases with valid format", () => {
+            expect(classifyScore("R999B999")).toBe('draw');
+            expect(classifyScore("R1000B0")).toBe('red');
+            expect(classifyScore("R0B1000")).toBe('blue');
         });
     });
 

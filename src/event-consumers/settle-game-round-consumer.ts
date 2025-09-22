@@ -34,33 +34,30 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
      * This method ensures thread-safe round ID generation for concurrent betting
      */
     private async getNextRoundIdAtomically(): Promise<number> {
-        // Check if roundsRepository is available (may not be in test environment)
         const roundsRepository = (this as any).roundsRepository;
         
         if (roundsRepository) {
             try {
-                // Get the latest round from database using atomic operation
-                const lastRound = await roundsRepository
-                    .findOne({}, "id", { sort: { id: -1 } })
-                    .lean()
-                    .exec();
+                // 使用 findOneAndUpdate 原子操作
+                const result = await roundsRepository.findOneAndUpdate(
+                    {}, // 空查询条件
+                    { $inc: { sequence: 1 } }, // 原子递增
+                    { 
+                        upsert: true, // 如果不存在则创建
+                        new: true, // 返回更新后的文档
+                        sort: { _id: -1 },
+                        setDefaultsOnInsert: true
+                    }
+                );
                 
-                if (lastRound) {
-                    const nextRoundId = lastRound.id + 1;
-                    console.log(`Atomically generated next round ID: ${nextRoundId} (from database: ${lastRound.id})`);
-                    return nextRoundId;
-                }
+                return result.sequence;
             } catch (error) {
-                console.warn(`Failed to query database for round ID, falling back to gameData: ${error}`);
+                console.error(`Atomic round ID generation failed: ${error}`);
+                throw new Error('Failed to generate round ID');
             }
-        } else {
-            console.warn(`roundsRepository not available, using gameData for round ID generation`);
         }
         
-        // Fallback: use current gameData + 1
-        const nextRoundId = this.gameData.roundId + 1;
-        console.log(`Atomically generated next round ID: ${nextRoundId} (from gameData: ${this.gameData.roundId})`);
-        return nextRoundId;
+        throw new Error('roundsRepository not available');
     }
     
     /**

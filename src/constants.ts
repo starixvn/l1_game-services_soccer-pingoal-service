@@ -1,19 +1,12 @@
 // Import types
-import type { VideoConfigurationMap, RaceTrackConfig } from "./types/game-config";
+import type { VideoConfigurationMap } from "./types/game-config";
 
-// Import JSON configurations using ES6 import syntax with import attributes
-import R1B2_CONFIG from "./gamedata/r1b2.json" with { type: "json" };
-import R1B3_CONFIG from "./gamedata/r1b3.json" with { type: "json" };
-import R1B4_CONFIG from "./gamedata/r1b4.json" with { type: "json" };
-import R1B5_CONFIG from "./gamedata/r1b5.json" with { type: "json" };
-import R1B6_CONFIG from "./gamedata/r1b6.json" with { type: "json" };
-
-// Type assertion to ensure JSON imports have correct type
-const r1b2Config: RaceTrackConfig = R1B2_CONFIG;
-const r1b3Config: RaceTrackConfig = R1B3_CONFIG;
-const r1b4Config: RaceTrackConfig = R1B4_CONFIG;
-const r1b5Config: RaceTrackConfig = R1B5_CONFIG;
-const r1b6Config: RaceTrackConfig = R1B6_CONFIG;
+// Import TypeScript configurations
+import { R1B2_CONFIG } from "./gamedata/r1b2";
+import { R1B3_CONFIG } from "./gamedata/r1b3";
+import { R1B4_CONFIG } from "./gamedata/r1b4";
+import { R1B5_CONFIG } from "./gamedata/r1b5";
+import { R1B6_CONFIG } from "./gamedata/r1b6";
 
 export const BET_CHOICES = {
     blue: "blue",
@@ -51,9 +44,9 @@ export const BET_CHOICE_RATE = {
  */
 //NOSONAR
 export const DEFAULT_NUMBER_OF_VIDEOS: VideoConfigurationMap = {
-    R1B2: r1b2Config,
-    R1B3: r1b3Config,
-    R1B4: r1b4Config,
-    R1B5: r1b5Config,
-    R1B6: r1b6Config,
+    "R1B2": R1B2_CONFIG,
+    "R1B3": R1B3_CONFIG,
+    "R1B4": R1B4_CONFIG,
+    "R1B5": R1B5_CONFIG,
+    "R1B6": R1B6_CONFIG
 } as const;

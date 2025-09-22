@@ -20,8 +20,13 @@ interface PlayerTunnelSelections {
     blueTunnel: number;  // Player's specified blue tunnel choice (1-6)
 }
 
+interface PlayerInfo {
+    nickname: string;    // Player's nickname for admin settlement matching
+}
+
 export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.SettleGameRoundConsumer {
     private currentPlayerSelections: PlayerTunnelSelections | null = null;
+    private currentPlayerInfo: PlayerInfo | null = null;
     
     /**
      * Set the current player's tunnel selections before settlement
@@ -34,14 +39,15 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     }
     
     /**
-     * Settle a round with specific tunnel selections (thread-safe)
+     * Settle a round with specific tunnel selections and player info (thread-safe)
      * This method avoids race conditions by passing selections as parameters instead of using singleton state
      */
-    async settleRoundWithSelections(selections: PlayerTunnelSelections): Promise<void> {
-        console.log(`Starting settlement for round ${this.gameData.roundId} with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}`);
+    async settleRoundWithSelections(selections: PlayerTunnelSelections, playerInfo?: PlayerInfo): Promise<void> {
+        console.log(`Starting settlement for round ${this.gameData.roundId} with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}, player=${playerInfo?.nickname || 'unknown'}`);
         
-        // Temporarily set selections for generateResult method
+        // Temporarily set selections and player info for generateResult method
         this.currentPlayerSelections = selections;
+        this.currentPlayerInfo = playerInfo || null;
         
         try {
             // Call the base class settleRound method
@@ -49,6 +55,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         } finally {
             // Always clean up state after settlement
             this.currentPlayerSelections = null;
+            this.currentPlayerInfo = null;
         }
     }
     
@@ -62,10 +69,17 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             return this.definition.generateResult();
         }
         
+        console.log("gameData", this.gameData);
+        
         console.log(`Generating result for round ${this.gameData.roundId} with player tunnel selections`);
         
-        // Generate result with player's specified tunnel choices
+        // Generate result with player's specified tunnel choices and player info for admin settlement
         // Note: Don't clear selections here as settleRoundWithSelections handles cleanup
-        return generateResult(this.currentPlayerSelections, this.gameData.roundId);
+        return generateResult(
+            this.currentPlayerSelections, 
+            this.gameData.roundId,
+            this.gameData,
+            this.currentPlayerInfo?.nickname
+        );
     }
 }

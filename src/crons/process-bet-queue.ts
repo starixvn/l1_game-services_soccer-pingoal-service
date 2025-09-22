@@ -74,12 +74,17 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 
         // For single-player style, each bet gets its own round and should be settled immediately
         try {
-            // Pass player's specified tunnel choices directly to settlement method (thread-safe)
-            await this.settleGameRoundConsumer.settleRoundWithSelections({
-                redTunnel: bet.redTunnel,
-                blueTunnel: bet.blueTunnel
-            });
-            console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}`);
+            // Pass player's specified tunnel choices and player info to settlement method (thread-safe)
+            await this.settleGameRoundConsumer.settleRoundWithSelections(
+                {
+                    redTunnel: bet.redTunnel,
+                    blueTunnel: bet.blueTunnel
+                },
+                {
+                    nickname: player.profile.name
+                }
+            );
+            console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}, player=${player.profile.name}`);
         } catch (error) {
             console.error(`Settlement failed for round ${roundId}:`, error);
             // Note: Settlement failure shouldn't affect the bet processing result

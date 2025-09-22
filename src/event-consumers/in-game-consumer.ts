@@ -30,6 +30,7 @@ interface Player {
 export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsumer {
 
     async consume(realPlayer: Player) {
+        console.log("consume", realPlayer);
         const { gameConfigs } = this.gameData;
         const disabled = !gameConfigs || !gameConfigs.enabled || this.gameData.delayStartTime > 0;
         realPlayer.socketClient.emit(this.definition.name, { um: disabled, um_message: this.gameData.umMessages });

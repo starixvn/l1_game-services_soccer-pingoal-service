@@ -139,12 +139,14 @@ describe("ProcessBetQueue", () => {
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
+                }, {
+                    nickname: "TestPlayer"
                 });
 
             // Verify success logging
             expect(console.log).toHaveBeenCalledWith(`Successful bet by ${mockPlayer.profile.name} on round ${roundId}`);
             expect(console.log).toHaveBeenCalledWith(
-                `Settlement completed for round ${roundId} with player tunnel selections: red=${mockBet.redTunnel}, blue=${mockBet.blueTunnel}`
+                `Settlement completed for round ${roundId} with player tunnel selections: red=${mockBet.redTunnel}, blue=${mockBet.blueTunnel}, player=${mockPlayer.profile.name}`
             );
         });
 
@@ -165,6 +167,8 @@ describe("ProcessBetQueue", () => {
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
+                }, {
+                    nickname: "TestPlayer"
                 });
 
             // Verify error logging
@@ -216,6 +220,8 @@ describe("ProcessBetQueue", () => {
                     .toHaveBeenCalledWith({
                         redTunnel: tunnelCase.redTunnel,
                         blueTunnel: tunnelCase.blueTunnel
+                    }, {
+                        nickname: "TestPlayer"
                     });
             }
         });
@@ -257,6 +263,8 @@ describe("ProcessBetQueue", () => {
             expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith({
                 redTunnel: 2,
                 blueTunnel: 5
+            }, {
+                nickname: "IntegrationTest"
             });
         });
 

@@ -74,7 +74,7 @@ describe("SettleGameRoundConsumer", () => {
             
             // Verify logging
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Starting settlement for round 123 with tunnel selections: red=2, blue=4"
+                "Starting settlement for round 123 with tunnel selections: red=2, blue=4, player=unknown"
             );
         });
 
@@ -159,7 +159,7 @@ describe("SettleGameRoundConsumer", () => {
                 settleGameRoundConsumer.setPlayerTunnelSelections(selections);
                 const result = settleGameRoundConsumer.generateResult();
 
-                expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123);
+                expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123, {roundId: 123}, undefined);
                 expect(result).toEqual(mockResult);
                 expect(consoleLogSpy).toHaveBeenCalledWith(
                     "Generating result for round 123 with player tunnel selections"
@@ -202,8 +202,8 @@ describe("SettleGameRoundConsumer", () => {
                 const result2 = settleGameRoundConsumer.generateResult();
 
                 expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-                expect(mockGenerateResult).toHaveBeenNthCalledWith(1, firstSelections, 123);
-                expect(mockGenerateResult).toHaveBeenNthCalledWith(2, secondSelections, 123);
+                expect(mockGenerateResult).toHaveBeenNthCalledWith(1, firstSelections, 123, {roundId: 123}, undefined);
+                expect(mockGenerateResult).toHaveBeenNthCalledWith(2, secondSelections, 123, {roundId: 123}, undefined);
                 expect(result1).toEqual(firstResult);
                 expect(result2).toEqual(secondResult);
             });
@@ -322,7 +322,7 @@ describe("SettleGameRoundConsumer", () => {
                     settleGameRoundConsumer.setPlayerTunnelSelections(selections);
                     const result = settleGameRoundConsumer.generateResult();
 
-                    expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123);
+                    expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123, {roundId: 123}, undefined);
                     expect(result.redTunnel).toBe(selections.redTunnel);
                     expect(result.blueTunnel).toBe(selections.blueTunnel);
                 });
@@ -338,11 +338,14 @@ describe("SettleGameRoundConsumer", () => {
             settleGameRoundConsumer.setPlayerTunnelSelections(selections);
             settleGameRoundConsumer.generateResult();
 
-            expect(consoleLogSpy).toHaveBeenCalledTimes(2);
+            expect(consoleLogSpy).toHaveBeenCalledTimes(3);
             expect(consoleLogSpy).toHaveBeenNthCalledWith(1,
                 "Set player tunnel selections: red=1, blue=2"
             );
             expect(consoleLogSpy).toHaveBeenNthCalledWith(2,
+                "gameData", {roundId: 123}
+            );
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(3,
                 "Generating result for round 123 with player tunnel selections"
             );
         });
@@ -377,8 +380,8 @@ describe("SettleGameRoundConsumer", () => {
             secondInstance.generateResult();
 
             expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, 123);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, 123);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, 123, {roundId: 123}, undefined);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, 123, {roundId: 123}, undefined);
         });
     });
 });

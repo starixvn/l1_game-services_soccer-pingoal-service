@@ -133,35 +133,82 @@ const generateVideoIndex = (tunnelKey: string, selectedScoreKey: string): number
     return videoIndex;
 };
 
-export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number): Result => {
-    // Build tunnel configuration key from player selections
-    // Format: R{RedTunnel}B{BlueTunnel}
-    const tunnelKey = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}`;
-    
-    console.log(`Generating result for round ${roundId} with tunnel combination: ${tunnelKey}`);
-    
-    // Two-stage selection process:
-    // 1. Select outcome (red/blue/draw) using BET_CHOICE_RATE
-    // 2. Select specific score from available scores that match the outcome
-    const { redScore, blueScore, selectedScoreKey } = generateScoreFromOutcome(tunnelKey);
+/**
+ * Generates tunnel key from player selections
+ */
+const generateTunnelKey = (playerSelections: PlayerTunnelSelections): string => {
+    return `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}`;
+};
 
-    
-    // Generate video index based on available videos for the selected score
-    const videoIndex = generateVideoIndex(tunnelKey, selectedScoreKey);
-
+/**
+ * Generates video name hash from tunnel and score information
+ */
+const generateVideoName = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, videoIndex: number): string => {
     const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;
     const videoName = crypto.createHash("sha256").update(`${rawVideoName}`).digest("hex");
-    const video = `soccerpingoal/${videoName}.m3u8`
-    
+    return `soccerpingoal/${videoName}.m3u8`;
+};
 
-    // Store player's specified tunnel choices and generated scores in the result
+/**
+ * Creates Result object with given scores and player selections
+ */
+const createResult = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, video: string): Result => {
     return {
-        red: redScore,                         // Score from outcome-based selection
-        blue: blueScore,                       // Score from outcome-based selection
-        redTunnel: playerSelections.redTunnel,  // Player's specified red tunnel choice
-        blueTunnel: playerSelections.blueTunnel, // Player's specified blue tunnel choice
+        red: redScore,
+        blue: blueScore,
+        redTunnel: playerSelections.redTunnel,
+        blueTunnel: playerSelections.blueTunnel,
         video: video,
     };
+};
+
+/**
+ * Generates complete result from scores - common logic for both admin and normal settlement
+ */
+const generateCompleteResult = (
+    playerSelections: PlayerTunnelSelections, 
+    redScore: number, 
+    blueScore: number, 
+    selectedScoreKey: string
+): Result => {
+    const tunnelKey = generateTunnelKey(playerSelections);
+    const videoIndex = generateVideoIndex(tunnelKey, selectedScoreKey);
+    const video = generateVideoName(playerSelections, redScore, blueScore, videoIndex);
+    return createResult(playerSelections, redScore, blueScore, video);
+};
+
+export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number, gameData?: any, playerNickname?: string): Result => {
+    const tunnelKey = generateTunnelKey(playerSelections);
+    
+    let redScore: number;
+    let blueScore: number;
+    let selectedScoreKey: string;
+    
+    // Check if admin settlement should be used
+    const shouldUseAdminSettlement = gameData?.settlementResultFromAdmin?.result && 
+                                   playerNickname && 
+                                   gameData.settlementResultFromAdmin.result?.playerName === playerNickname;
+    
+    if (shouldUseAdminSettlement) {
+        const adminResult = gameData.settlementResultFromAdmin.result;
+        console.log(`Using admin settlement result for player ${playerNickname}: red=${adminResult.red}, blue=${adminResult.blue}`);
+        
+        // Strategy A: Use admin specified scores
+        redScore = adminResult.red;
+        blueScore = adminResult.blue;
+        selectedScoreKey = `R${redScore}B${blueScore}`;
+    } else {
+        console.log(`Generating result for round ${roundId} with tunnel combination: ${tunnelKey}`);
+        
+        // Strategy B: Use probability-based selection
+        const scoreResult = generateScoreFromOutcome(tunnelKey);
+        redScore = scoreResult.redScore;
+        blueScore = scoreResult.blueScore;
+        selectedScoreKey = scoreResult.selectedScoreKey;
+    }
+    
+    // Generate complete result using unified logic
+    return generateCompleteResult(playerSelections, redScore, blueScore, selectedScoreKey);
 };
 
 // ❌ DEPRECATED: This function should not be used in normal gameplay

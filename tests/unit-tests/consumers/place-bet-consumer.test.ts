@@ -22,6 +22,23 @@ jest.mock("sc-game-base", () => ({
                     return { type, ...data };
                 }
                 
+                // Mock the parent validateBetRequestParams method
+                validateBetRequestParams(request: any) {
+                    const { amount, betChoice } = request;
+                    return [
+                        // Amount validation
+                        {
+                            failure: amount === undefined || amount === null || amount <= 0,
+                            notice: this.getNoticeObj("INVALID_BET")
+                        },
+                        // BetChoice validation  
+                        {
+                            failure: !betChoice || !["blue", "red", "draw"].includes(betChoice),
+                            notice: this.getNoticeObj("INVALID_BET_CHOICE")
+                        }
+                    ];
+                }
+                
                 composeBetChoiceValidationCriteria(betChoice: string) {
                     // Mock implementation that returns validation criteria
                     const validChoices = ["blue", "red", "draw"];
@@ -140,8 +157,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, betChoice: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // betChoice validation is from the parent class (last validation)
-                const betChoiceValidation = validations[validations.length - 1];
+                // betChoice validation is from the parent class (index 1)
+                const betChoiceValidation = validations[1];
                 
                 expect(betChoiceValidation.failure).toBe(true);
                 expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
@@ -151,8 +168,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, betChoice: "invalid" };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // betChoice validation is from the parent class (last validation)
-                const betChoiceValidation = validations[validations.length - 1];
+                // betChoice validation is from the parent class (index 1)
+                const betChoiceValidation = validations[1];
                 
                 expect(betChoiceValidation.failure).toBe(true);
                 expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
@@ -162,8 +179,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, betChoice: "" };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // betChoice validation is from the parent class (last validation)
-                const betChoiceValidation = validations[validations.length - 1];
+                // betChoice validation is from the parent class (index 1)
+                const betChoiceValidation = validations[1];
                 
                 expect(betChoiceValidation.failure).toBe(true);
                 expect(betChoiceValidation.notice.type).toBe("INVALID_BET_CHOICE");
@@ -175,8 +192,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // redTunnel presence validation is at index 1
-                const redTunnelValidation = validations[1];
+                // redTunnel presence validation is at index 2
+                const redTunnelValidation = validations[2];
                 
                 expect(redTunnelValidation.failure).toBe(true);
                 expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -186,8 +203,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: null } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // redTunnel presence validation is at index 1
-                const redTunnelValidation = validations[1];
+                // redTunnel presence validation is at index 2
+                const redTunnelValidation = validations[2];
                 
                 expect(redTunnelValidation.failure).toBe(true);
                 expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -197,8 +214,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: 0 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // redTunnel range validation is at index 3
-                const redTunnelValidation = validations[3];
+                // redTunnel range validation is at index 4
+                const redTunnelValidation = validations[4];
                 
                 expect(redTunnelValidation.failure).toBe(true);
                 expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -208,8 +225,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: 7 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // redTunnel range validation is at index 3
-                const redTunnelValidation = validations[3];
+                // redTunnel range validation is at index 4
+                const redTunnelValidation = validations[4];
                 
                 expect(redTunnelValidation.failure).toBe(true);
                 expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -219,8 +236,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, redTunnel: 1.5 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // redTunnel range validation is at index 3
-                const redTunnelValidation = validations[3];
+                // redTunnel range validation is at index 4
+                const redTunnelValidation = validations[4];
                 
                 expect(redTunnelValidation.failure).toBe(true);
                 expect(redTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -232,8 +249,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: undefined } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // blueTunnel presence validation is at index 2
-                const blueTunnelValidation = validations[2];
+                // blueTunnel presence validation is at index 3
+                const blueTunnelValidation = validations[3];
                 
                 expect(blueTunnelValidation.failure).toBe(true);
                 expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -243,8 +260,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: null } as any;
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // blueTunnel presence validation is at index 2
-                const blueTunnelValidation = validations[2];
+                // blueTunnel presence validation is at index 3
+                const blueTunnelValidation = validations[3];
                 
                 expect(blueTunnelValidation.failure).toBe(true);
                 expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -254,8 +271,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: 0 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // blueTunnel range validation is at index 4
-                const blueTunnelValidation = validations[4];
+                // blueTunnel range validation is at index 5
+                const blueTunnelValidation = validations[5];
                 
                 expect(blueTunnelValidation.failure).toBe(true);
                 expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -265,8 +282,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: 7 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // blueTunnel range validation is at index 4
-                const blueTunnelValidation = validations[4];
+                // blueTunnel range validation is at index 5
+                const blueTunnelValidation = validations[5];
                 
                 expect(blueTunnelValidation.failure).toBe(true);
                 expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -276,8 +293,8 @@ describe("PlaceBetConsumer", () => {
                 const request = { ...validRequest, blueTunnel: 1.5 };
                 
                 const validations = placeBetConsumer.validateBetRequestParams(request);
-                // blueTunnel range validation is at index 4
-                const blueTunnelValidation = validations[4];
+                // blueTunnel range validation is at index 5
+                const blueTunnelValidation = validations[5];
                 
                 expect(blueTunnelValidation.failure).toBe(true);
                 expect(blueTunnelValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -292,8 +309,8 @@ describe("PlaceBetConsumer", () => {
                     const request = { ...validRequest, redTunnel: tunnelValue, blueTunnel: tunnelValue };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
                     
-                    // Tunnel combination validation is at index 5
-                    const tunnelCombinationValidation = validations[5];
+                    // Tunnel combination validation is at index 6
+                    const tunnelCombinationValidation = validations[6];
                     
                     expect(tunnelCombinationValidation.failure).toBe(true);
                     expect(tunnelCombinationValidation.notice.type).toBe(helpers.noticeHelper.invalidBet);
@@ -311,8 +328,8 @@ describe("PlaceBetConsumer", () => {
                     const request = { ...validRequest, ...tunnelCase };
                     const validations = placeBetConsumer.validateBetRequestParams(request);
                     
-                    // Tunnel combination validation is at index 5
-                    const tunnelCombinationValidation = validations[5];
+                    // Tunnel combination validation is at index 6
+                    const tunnelCombinationValidation = validations[6];
                     
                     expect(tunnelCombinationValidation.failure).toBe(false);
                 });

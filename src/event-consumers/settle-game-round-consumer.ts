@@ -65,10 +65,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         console.log(`Generating result for round ${this.gameData.roundId} with player tunnel selections`);
         
         // Generate result with player's specified tunnel choices
-        const result = generateResult(this.currentPlayerSelections, this.gameData.roundId);
-        
         // Note: Don't clear selections here as settleRoundWithSelections handles cleanup
-        
-        return result;
+        return generateResult(this.currentPlayerSelections, this.gameData.roundId);
     }
 }

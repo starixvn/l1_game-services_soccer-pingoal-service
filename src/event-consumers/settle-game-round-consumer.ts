@@ -161,7 +161,21 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
 
             // Publish winners
             (this as any).roundResultPublisher.publishWinners(roundId, this.gameData.winningPlayers);
+            
+            // Reset player data for next round if player info is available
+            if (this.currentPlayerInfo?.nickname) {
+                this.resetForNextRound(this.currentPlayerInfo.nickname);
+                console.log(`Reset player data for next round: ${this.currentPlayerInfo.nickname}`);
+            }
         }
+    }
+    
+    /**
+     * Reset player data for next round
+     * Removes the player from ingame data after settlement
+     */
+    resetForNextRound(playerName: string): void {
+        delete this.gameData.ingame[playerName];
     }
     
     /**

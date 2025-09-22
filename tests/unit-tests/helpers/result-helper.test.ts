@@ -80,7 +80,7 @@ describe("result-helper", () => {
 
             // Verify the random functions were called
             expect(secureWeightedPick).toHaveBeenCalledWith(
-                ['red', 'blue', 'draw'],
+                ['blue', 'red', 'draw'],
                 expect.arrayContaining([expect.any(Number), expect.any(Number), expect.any(Number)])
             );
             expect(securePickOne).toHaveBeenCalled();

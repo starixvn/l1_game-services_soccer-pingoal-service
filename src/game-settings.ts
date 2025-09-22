@@ -9,7 +9,7 @@ export default {
     },
     choices: Object.values(BET_CHOICES),
     choicesMapper: BET_CHOICE_ENUM,
-    hedgeBetGroups: [[BET_CHOICES.blue, BET_CHOICES.red]],
+    hedgeBetGroups: [], // No hedge bet restrictions - each bet is independent
     provablyFair: false,
     historyPageSize: 8,
     defaultBetTracks: {},

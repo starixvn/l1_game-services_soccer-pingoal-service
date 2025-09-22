@@ -405,6 +405,53 @@ describe("result-helper", () => {
             // Verify that the video hash is generated correctly
             expect(result.video).toMatch(/^[a-f0-9]{64}$/);
         });
+
+        it("should throw error when no valid scores found for specific outcome", async () => {
+            // To test the validScores.length === 0 error path, we need to mock the constants module
+            const selections = { redTunnel: 1, blueTunnel: 2 };
+            
+            // Create a mock configuration that only has "blue" winning scores
+            const mockVideoConfig = {
+                "R1B2": {
+                    "R5B10": 1,  // Blue wins (5 < 10)
+                    "R3B8": 1,   // Blue wins (3 < 8)
+                    "R4B12": 1   // Blue wins (4 < 12)
+                    // No red wins or draws - this will cause validScores.length === 0 for 'red' or 'draw' outcomes
+                }
+            };
+            
+            // Reset modules to allow fresh import
+            jest.resetModules();
+            
+            // Mock the constants module before importing generateResult
+            jest.doMock("../../../src/constants", () => {
+                const original = jest.requireActual("../../../src/constants");
+                return {
+                    ...original,
+                    DEFAULT_NUMBER_OF_VIDEOS: mockVideoConfig
+                };
+            });
+            
+            try {
+                // Re-mock the sc-core-rng functions after dynamic import
+                const { secureWeightedPick: freshSecureWeightedPick, securePickOne: freshSecurePickOne } = require("sc-core-rng");
+                (freshSecureWeightedPick as jest.Mock).mockReturnValue('red');
+                
+                // Dynamically import the function after mocking
+                const { generateResult: mockedGenerateResult } = await import("../../../src/helpers/result-helper");
+                
+                // This should trigger the "No valid scores found" error
+                // The exact outcome might be undefined due to mocking complexity, 
+                // but the important part is that we hit the validScores.length === 0 path
+                expect(() => mockedGenerateResult(selections, 123))
+                    .toThrow("No valid scores found for R1B2 with outcome:");
+                    
+            } finally {
+                // Clean up mocks
+                jest.dontMock("../../../src/constants");
+                jest.resetModules();
+            }
+        });
     });
 
     describe("integration scenarios", () => {

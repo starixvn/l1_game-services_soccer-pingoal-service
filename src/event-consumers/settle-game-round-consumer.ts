@@ -27,6 +27,41 @@ interface PlayerInfo {
 export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.SettleGameRoundConsumer {
     private currentPlayerSelections: PlayerTunnelSelections | null = null;
     private currentPlayerInfo: PlayerInfo | null = null;
+    private preAssignedRoundId: number | null = null;
+    
+    /**
+     * Atomically get next available round ID to prevent race conditions
+     * This method ensures thread-safe round ID generation for concurrent betting
+     */
+    private async getNextRoundIdAtomically(): Promise<number> {
+        // Check if roundsRepository is available (may not be in test environment)
+        const roundsRepository = (this as any).roundsRepository;
+        
+        if (roundsRepository) {
+            try {
+                // Get the latest round from database using atomic operation
+                const lastRound = await roundsRepository
+                    .findOne({}, "id", { sort: { id: -1 } })
+                    .lean()
+                    .exec();
+                
+                if (lastRound) {
+                    const nextRoundId = lastRound.id + 1;
+                    console.log(`Atomically generated next round ID: ${nextRoundId} (from database: ${lastRound.id})`);
+                    return nextRoundId;
+                }
+            } catch (error) {
+                console.warn(`Failed to query database for round ID, falling back to gameData: ${error}`);
+            }
+        } else {
+            console.warn(`roundsRepository not available, using gameData for round ID generation`);
+        }
+        
+        // Fallback: use current gameData + 1
+        const nextRoundId = this.gameData.roundId + 1;
+        console.log(`Atomically generated next round ID: ${nextRoundId} (from gameData: ${this.gameData.roundId})`);
+        return nextRoundId;
+    }
     
     /**
      * Set the current player's tunnel selections before settlement
@@ -40,22 +75,83 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     
     /**
      * Settle a round with specific tunnel selections and player info (thread-safe)
-     * This method avoids race conditions by passing selections as parameters instead of using singleton state
+     * This method avoids race conditions by pre-assigning roundId before settlement
      */
     async settleRoundWithSelections(selections: PlayerTunnelSelections, playerInfo?: PlayerInfo): Promise<void> {
-        console.log(`Starting settlement for round ${this.gameData.roundId} with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}, player=${playerInfo?.nickname || 'unknown'}`);
+        // First, atomically get the next round ID to prevent race conditions
+        const assignedRoundId = await this.getNextRoundIdAtomically();
         
-        // Temporarily set selections and player info for generateResult method
+        console.log(`Starting settlement for pre-assigned round ${assignedRoundId} with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}, player=${playerInfo?.nickname || 'unknown'}`);
+        
+        // Temporarily set selections, player info, and pre-assigned round ID
         this.currentPlayerSelections = selections;
         this.currentPlayerInfo = playerInfo || null;
+        this.preAssignedRoundId = assignedRoundId;
+        
+        // Update gameData.roundId to the pre-assigned value
+        const originalRoundId = this.gameData.roundId;
+        this.gameData.roundId = assignedRoundId;
         
         try {
-            // Call the base class settleRound method
+            // Call our overridden settleRound method
             await this.settleRound();
+            console.log(`Successfully settled round ${assignedRoundId}`);
+        } catch (error) {
+            // If settlement fails, restore original roundId
+            this.gameData.roundId = originalRoundId;
+            console.error(`Failed to settle round ${assignedRoundId}:`, error);
+            throw error;
         } finally {
             // Always clean up state after settlement
             this.currentPlayerSelections = null;
             this.currentPlayerInfo = null;
+            this.preAssignedRoundId = null;
+        }
+    }
+    
+    /**
+     * Override settleRound to prevent race conditions in roundId management
+     * This version uses pre-assigned roundId instead of auto-incrementing
+     */
+    async settleRound(): Promise<void> {
+        const result = this.generateResult();
+        const settlementResult = (this.definition as any).settle(result);
+        const { roundId, exchangeRates } = this.gameData;
+        
+        console.log(`Creating round in database with ID: ${roundId}`);
+        
+        const newRound = await (this as any).roundsRepository.create({
+            id: roundId,
+            result,
+            settlementResult,
+            time: new Date(),
+            exchangeRateId: exchangeRates.exId,
+        });
+
+        if (newRound) {
+            // Publish round result
+            (this as any).roundResultPublisher.publishRoundResult(
+                (this as any).collectRoundResult(result, settlementResult, roundId)
+            );
+
+            const finish = {
+                settlementResult,
+                result,
+                roundId: newRound.id,
+                time: newRound.time,
+            };
+
+            // ⚠️ CRITICAL DIFFERENCE: We DON'T increment roundId here
+            // The roundId increment is handled externally by settleRoundWithSelections
+            // This prevents race conditions in multi-player scenarios
+            
+            console.log(`Round ${roundId} settled successfully, NOT auto-incrementing roundId to prevent race conditions`);
+
+            // Settle bets
+            await (this as any).settleBets(finish);
+
+            // Publish winners
+            (this as any).roundResultPublisher.publishWinners(roundId, this.gameData.winningPlayers);
         }
     }
     

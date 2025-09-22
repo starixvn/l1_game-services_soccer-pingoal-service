@@ -146,7 +146,7 @@ const generateTunnelKey = (playerSelections: PlayerTunnelSelections): string => 
 const generateVideoName = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, videoIndex: number): string => {
     const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;
     const videoName = crypto.createHash("sha256").update(`${rawVideoName}`).digest("hex");
-    return `soccerpingoal/${videoName}.m3u8`;
+    return `${videoName}.m3u8`;
 };
 
 /**

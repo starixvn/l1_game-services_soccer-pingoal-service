@@ -92,30 +92,4 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         }
     }
 
-    adjustOwnBets(playerName: string, bet: BetPayload): void {
-        const { betChoice, amount, redTunnel, blueTunnel } = bet;
-
-        if (this.gameData.ingame?.[playerName]) {
-            const playerInGame = this.gameData.ingame[playerName];
-
-            if (!playerInGame.ownBets) {
-                playerInGame.ownBets = {};
-            }
-
-            // Store bet amount by choice (overwrite for soccerpingoal - one bet per round)
-            playerInGame.ownBets[betChoice] = amount;
-            
-            // Store tunnel selections for this player (latest bet overwrites previous selections)
-            if (!playerInGame.tunnelSelections) {
-                playerInGame.tunnelSelections = {};
-            }
-            
-            playerInGame.tunnelSelections = {
-                redTunnel,
-                blueTunnel,
-                lastUpdated: new Date()
-            };
-        }
-    }
-
 }

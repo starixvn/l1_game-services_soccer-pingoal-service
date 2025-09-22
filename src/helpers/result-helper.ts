@@ -146,9 +146,9 @@ export const generateResult = (playerSelections: PlayerTunnelSelections, roundId
     // Generate video index based on available videos for the selected score
     const videoIndex = generateVideoIndex(tunnelKey, selectedScoreKey);
 
-    let video = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}_${videoIndex}.mp4`;
+    const video = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}_${videoIndex}.mp4`;
   
-    let sha256Video = crypto.createHash("sha256").update(`${video}`).digest("hex");
+    const sha256Video = crypto.createHash("sha256").update(`${video}`).digest("hex");
 
     // Store player's specified tunnel choices and generated scores in the result
     return {

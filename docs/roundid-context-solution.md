@@ -68,26 +68,94 @@ export class RequestContext {
 }
 ```
 
-### **2. Global RoundId Generator**
+### **2. RoundId Generator Interface & Implementation (DI Pattern)**
 
 ```typescript
 // src/utils/request-context.ts (continued)
-export class GlobalRoundIdGenerator {
-    private static currentRoundId: number = 0;
+
+// Interface for different game round ID generation strategies
+export interface IRoundIdGenerator {
+    getNextRoundId(): number;
+    initializeFrom(startingId: number): void;
+    getCurrentRoundId(): number;
+}
+
+// Default implementation for Soccer Pingoal game
+export class SoccerPingoalRoundIdGenerator implements IRoundIdGenerator {
+    private currentRoundId: number = 0;
     
-    static getNextRoundId(): number {
+    getNextRoundId(): number {
         this.currentRoundId++;
-        console.log(`Generated new global roundId: ${this.currentRoundId}`);
+        console.log(`[SoccerPingoal] Generated new roundId: ${this.currentRoundId}`);
         return this.currentRoundId;
     }
     
-    static initializeFrom(startingId: number): void {
+    initializeFrom(startingId: number): void {
         this.currentRoundId = startingId;
-        console.log(`Initialized global roundId counter from: ${startingId}`);
+        console.log(`[SoccerPingoal] Initialized roundId counter from: ${startingId}`);
     }
     
-    static getCurrentRoundId(): number {
+    getCurrentRoundId(): number {
         return this.currentRoundId;
+    }
+}
+
+// Enhanced RequestContext with DI support
+export class RequestContext {
+    private static storage = new Map<string, any>();
+    private static roundIdGenerator: IRoundIdGenerator;
+    
+    // DI setter for round ID generator
+    static setRoundIdGenerator(generator: IRoundIdGenerator): void {
+        this.roundIdGenerator = generator;
+        console.log(`Context: Set RoundId generator to ${generator.constructor.name}`);
+    }
+    
+    static getRoundIdGenerator(): IRoundIdGenerator {
+        if (!this.roundIdGenerator) {
+            throw new Error('RoundIdGenerator not initialized. Please call setRoundIdGenerator() first.');
+        }
+        return this.roundIdGenerator;
+    }
+    
+    static setRoundId(requestId: string, roundId: number): void {
+        this.storage.set(`${requestId}_roundId`, roundId);
+        console.log(`Context: Set roundId ${roundId} for request ${requestId}`);
+    }
+    
+    static getRoundId(requestId: string): number | undefined {
+        const roundId = this.storage.get(`${requestId}_roundId`);
+        console.log(`Context: Get roundId ${roundId} for request ${requestId}`);
+        return roundId;
+    }
+    
+    static setRequestData(requestId: string, key: string, value: any): void {
+        this.storage.set(`${requestId}_${key}`, value);
+    }
+    
+    static getRequestData(requestId: string, key: string): any {
+        return this.storage.get(`${requestId}_${key}`);
+    }
+    
+    static cleanup(requestId: string): void {
+        // Clean up all data related to this request
+        const keysToDelete = [];
+        for (const key of this.storage.keys()) {
+            if (key.startsWith(`${requestId}_`)) {
+                keysToDelete.push(key);
+            }
+        }
+        keysToDelete.forEach(key => this.storage.delete(key));
+        console.log(`Context: Cleaned up ${keysToDelete.length} items for request ${requestId}`);
+    }
+    
+    static getAllActiveRequests(): string[] {
+        const requestIds = new Set<string>();
+        for (const key of this.storage.keys()) {
+            const requestId = key.split('_')[0];
+            requestIds.add(requestId);
+        }
+        return Array.from(requestIds);
     }
 }
 ```
@@ -97,7 +165,7 @@ export class GlobalRoundIdGenerator {
 ### **1. src/event-consumers/place-bet-consumer.ts**
 
 ```typescript
-import { RequestContext, GlobalRoundIdGenerator } from '../utils/request-context';
+import { RequestContext, IRoundIdGenerator } from '../utils/request-context';
 
 export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetConsumer {
     
@@ -107,9 +175,10 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
     }
 
     validateBetRequestParams(request: any) {
-        // Generate unique request ID and roundId
+        // Generate unique request ID and roundId using DI generator
         const requestId = this.generateRequestId();
-        const assignedRoundId = GlobalRoundIdGenerator.getNextRoundId();
+        const roundIdGenerator = RequestContext.getRoundIdGenerator();
+        const assignedRoundId = roundIdGenerator.getNextRoundId();
         
         // Store in Context (don't modify this.gameData.roundId)
         RequestContext.setRoundId(requestId, assignedRoundId);
@@ -265,21 +334,32 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 ### **4. src/crons/game-cron.ts**
 
 ```typescript
-import { GlobalRoundIdGenerator } from '../utils/request-context';
+import { RequestContext, IRoundIdGenerator } from '../utils/request-context';
 
 export default class GameCron extends Core.Crons.BaseGameCron {
+    private readonly roundIdGenerator: IRoundIdGenerator;
+
+    constructor(dependencies: any) {
+        super(dependencies);
+        // Get injected roundId generator
+        this.roundIdGenerator = dependencies.roundIdGenerator;
+    }
+
     async start() {
         await this.roundIdConsumer.initRoundId();
 
-        // Initialize global roundId generator
+        // Initialize the injected roundId generator and set it in Context
         const currentRoundId = this.gameData.roundId || 6800;
-        GlobalRoundIdGenerator.initializeFrom(currentRoundId);
+        this.roundIdGenerator.initializeFrom(currentRoundId);
+        
+        // Set the generator in RequestContext for global access
+        RequestContext.setRoundIdGenerator(this.roundIdGenerator);
 
         // Set initial round ID (for other potential uses, but not for allocation)
         if (this.gameData.roundId === 1) {
             const firstRoundId = 6800;
             this.gameData.roundId = firstRoundId;
-            GlobalRoundIdGenerator.initializeFrom(firstRoundId);
+            this.roundIdGenerator.initializeFrom(firstRoundId);
         }
 
         await this.getSettingForNewRound();
@@ -288,6 +368,156 @@ export default class GameCron extends Core.Crons.BaseGameCron {
     }
 }
 ```
+
+### **5. src/container-registry.ts (DI Registration)**
+
+```typescript
+import { asClass, asValue, AwilixContainer } from "awilix";
+import { Table } from "sc-game-base";
+import { GameCron, ProcessBetQueue } from "./crons";
+import { InGameConsumer, PlaceBetConsumer, SettleGameRoundConsumer } from "./event-consumers";
+import { betLogs, bets, rounds, tmpBets } from "./models";
+import { GameStatusPublisher } from "./event-publishers";
+import { RoundQuery } from "./crons/query-apis/round-query";
+import { SoccerPingoalRoundIdGenerator } from "./utils/request-context";
+
+export default class ContainerRegistry extends Table.TableContainerRegistry {
+    register(appConfigs: any, definition: any, gameData: any): AwilixContainer<any> {
+        super.register(appConfigs, definition, gameData);
+        this.registerApis();
+
+        return this.container;
+    }
+
+    registerApis() {
+        super.registerApis();
+        this.container.register({
+            roundQuery: asClass(RoundQuery).singleton(),
+        });
+    }
+
+    registerModels() {
+        super.registerModels();
+
+        this.container.register({
+            betsRepository: asValue(bets),
+            tempBetsRepository: asValue(tmpBets),
+            betLogsRepository: asValue(betLogs),
+            roundsRepository: asValue(rounds),
+        });
+    }
+
+    registerCrons(): void {
+        super.registerCrons();
+
+        this.container.register({
+            gameCron: asClass(GameCron).singleton().proxy(),
+            processBetQueue: asClass(ProcessBetQueue).singleton().proxy(),
+            // Register RoundId Generator for Soccer Pingoal game
+            roundIdGenerator: asClass(SoccerPingoalRoundIdGenerator).singleton(),
+        });
+    }
+
+    registerConsumers() {
+        super.registerConsumers();
+
+        this.container.register({
+            inGameConsumer: asClass(InGameConsumer).singleton(),
+            settleGameRoundConsumer: asClass(SettleGameRoundConsumer).singleton().proxy(),
+            placeBetConsumer: asClass(PlaceBetConsumer).singleton(),
+        });
+    }
+
+    registerPublishers() {
+        super.registerPublishers();
+
+        this.container.register({
+            gameStatusPublisher: asClass(GameStatusPublisher).singleton(),
+        });
+    }
+}
+```
+
+## 🎮 **Multi-Game Support with DI Pattern**
+
+The DI pattern allows different games to implement their own RoundId generation strategies:
+
+### **Example: Different Game Implementations**
+
+```typescript
+// src/utils/round-id-generators/poker-round-id-generator.ts
+export class PokerRoundIdGenerator implements IRoundIdGenerator {
+    private currentRoundId: number = 0;
+    private gamePrefix: string = 'PKR';
+    
+    getNextRoundId(): number {
+        this.currentRoundId++;
+        const roundId = parseInt(`${Date.now().toString().slice(-6)}${this.currentRoundId.toString().padStart(3, '0')}`);
+        console.log(`[Poker] Generated new roundId: ${roundId}`);
+        return roundId;
+    }
+    
+    initializeFrom(startingId: number): void {
+        this.currentRoundId = startingId;
+        console.log(`[Poker] Initialized roundId counter from: ${startingId}`);
+    }
+    
+    getCurrentRoundId(): number {
+        return this.currentRoundId;
+    }
+}
+
+// src/utils/round-id-generators/blackjack-round-id-generator.ts  
+export class BlackjackRoundIdGenerator implements IRoundIdGenerator {
+    private currentRoundId: number = 0;
+    
+    getNextRoundId(): number {
+        // Blackjack uses timestamp-based IDs for better uniqueness
+        const timestamp = Date.now();
+        this.currentRoundId = timestamp;
+        console.log(`[Blackjack] Generated timestamp-based roundId: ${this.currentRoundId}`);
+        return this.currentRoundId;
+    }
+    
+    initializeFrom(startingId: number): void {
+        // For timestamp-based, we might not use the startingId
+        console.log(`[Blackjack] Using timestamp-based generation, ignoring startingId: ${startingId}`);
+    }
+    
+    getCurrentRoundId(): number {
+        return this.currentRoundId;
+    }
+}
+```
+
+### **Game-Specific Container Registry**
+
+```typescript
+// For different games, register different generators:
+
+// Soccer Pingoal Game
+this.container.register({
+    roundIdGenerator: asClass(SoccerPingoalRoundIdGenerator).singleton(),
+});
+
+// Poker Game
+this.container.register({
+    roundIdGenerator: asClass(PokerRoundIdGenerator).singleton(),
+});
+
+// Blackjack Game  
+this.container.register({
+    roundIdGenerator: asClass(BlackjackRoundIdGenerator).singleton(),
+});
+```
+
+### **Benefits of DI Approach**
+
+1. **🎯 Game-Specific Logic**: Each game can have its unique roundId strategy
+2. **🔧 Easy Testing**: Mock generators for unit tests
+3. **🚀 Runtime Switching**: Could potentially switch generators based on configuration
+4. **📈 Extensibility**: Add new games without modifying existing code
+5. **🔒 Type Safety**: Interface ensures consistent API across all implementations
 
 ## 📊 **Data Flow Diagram**
 
@@ -339,36 +569,90 @@ graph TD
 
 ## 🔧 **Implementation Steps**
 
-1. **Add** `src/utils/request-context.ts`
-2. **Modify** `src/event-consumers/place-bet-consumer.ts`
-3. **Modify** `src/event-consumers/settle-game-round-consumer.ts`  
-4. **Modify** `src/crons/process-bet-queue.ts`
-5. **Modify** `src/crons/game-cron.ts`
-6. **Test** concurrent scenarios to ensure roundId isolation works properly
+1. **Add** `src/utils/request-context.ts` - Create RequestContext and IRoundIdGenerator interface
+2. **Add** `src/utils/request-context.ts` - Implement SoccerPingoalRoundIdGenerator
+3. **Modify** `src/container-registry.ts` - Register roundIdGenerator as DI dependency
+4. **Modify** `src/crons/game-cron.ts` - Inject and initialize roundIdGenerator
+5. **Modify** `src/event-consumers/place-bet-consumer.ts` - Use injected generator via RequestContext
+6. **Modify** `src/event-consumers/settle-game-round-consumer.ts` - Use Context-based roundId
+7. **Modify** `src/crons/process-bet-queue.ts` - Ensure proper Context usage
+8. **Test** concurrent scenarios to ensure roundId isolation works properly
+9. **Optional**: Create additional game-specific generators for other games
 
 ## 📋 **Test Scenarios**
 
 ### **Unit Tests**
 - Test Context storage and retrieval
-- Test global roundId generator uniqueness
+- Test IRoundIdGenerator interface implementations
+- Test different generator strategies (SoccerPingoal, Poker, Blackjack)
 - Test Context cleanup functionality
+- Test DI injection and initialization
 
 ### **Integration Tests**  
 - Simulate multi-user concurrent betting
 - Verify each user gets unique roundId
 - Confirm correct roundId is used during settlement
+- Test generator switching for different games
+- Verify RequestContext properly uses injected generator
 
 ### **Load Tests**
 - RoundId allocation under high concurrency scenarios
 - Context memory usage monitoring
 - Long-running stability tests
+- Performance comparison between different generator implementations
+
+### **DI-Specific Tests**
+```typescript
+// Example test cases for DI pattern
+describe('RoundId Generator DI', () => {
+    test('should inject correct generator for Soccer Pingoal', () => {
+        const generator = container.resolve('roundIdGenerator');
+        expect(generator).toBeInstanceOf(SoccerPingoalRoundIdGenerator);
+    });
+    
+    test('should generate unique roundIds with different generators', async () => {
+        const soccerGen = new SoccerPingoalRoundIdGenerator();
+        const pokerGen = new PokerRoundIdGenerator();
+        
+        soccerGen.initializeFrom(1000);
+        pokerGen.initializeFrom(1000);
+        
+        const soccerId = soccerGen.getNextRoundId();
+        const pokerId = pokerGen.getNextRoundId();
+        
+        expect(soccerId).not.toEqual(pokerId);
+    });
+    
+    test('should handle RequestContext generator switching', () => {
+        const mockGen = jest.createMockFromModule<IRoundIdGenerator>('../utils/request-context');
+        RequestContext.setRoundIdGenerator(mockGen);
+        
+        expect(RequestContext.getRoundIdGenerator()).toBe(mockGen);
+    });
+});
+```
 
 ## 🚀 **Summary**
 
-This solution completely resolves the roundId concurrency safety issues by introducing Request Context mechanism:
-- **Don't modify shared state** `this.gameData.roundId`
-- **Use Context isolation** for each request's data  
-- **Maintain API compatibility** without breaking existing interfaces
-- **Easy to maintain and extend** with clear architectural design
+This solution completely resolves the roundId concurrency safety issues by introducing Request Context mechanism with Dependency Injection pattern:
 
-After implementing this solution, the system will be able to safely handle multi-user concurrent betting, with each player receiving a correct and unique roundId.
+### **Core Benefits**
+- **🔒 Concurrency Safety**: Don't modify shared state `this.gameData.roundId`
+- **🎯 Request Isolation**: Use Context isolation for each request's data  
+- **🔌 API Compatibility**: Maintain compatibility without breaking existing interfaces
+- **🏗️ Clean Architecture**: Clear architectural design with DI pattern
+
+### **DI Pattern Advantages**
+- **🎮 Multi-Game Support**: Different games can implement unique roundId strategies
+- **🔧 Easy Testing**: Injectable dependencies make unit testing straightforward
+- **📈 High Extensibility**: Add new games without modifying existing code
+- **⚡ Runtime Flexibility**: Could potentially switch generators based on configuration
+- **🔒 Type Safety**: Interface ensures consistent API across all implementations
+
+### **Production Ready**
+After implementing this solution, the system will be able to:
+- ✅ Safely handle multi-user concurrent betting
+- ✅ Give each player a correct and unique roundId
+- ✅ Support different games with their own roundId generation logic
+- ✅ Scale easily to accommodate new game types
+- ✅ Maintain high performance under load with proper isolation

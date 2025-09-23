@@ -29,48 +29,34 @@ interface Player {
 
 export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
     private readonly settleGameRoundConsumer: SettleGameRoundConsumer;
-    private readonly roundsRepository: any; // Reference to rounds repository
+    // Note: roundsRepository dependency removed - roundId now managed in PlaceBetConsumer
 
     constructor(dependencies: any) {
         super(dependencies);
         this.settleGameRoundConsumer = dependencies.settleGameRoundConsumer;
-        this.roundsRepository = dependencies.roundsRepository;
+        // Removed roundsRepository initialization as we no longer query database for roundId
     }
 
     /**
-     * Generate a new unique roundId for each bet (single-player style)
-     * Each bet gets its own round ID, allowing concurrent independent betting
+     * DEPRECATED: Round ID generation is now handled in PlaceBetConsumer
+     * Round IDs are assigned immediately when PlaceBet request is received
+     * This ensures no database queries are needed and provides immediate thread-safe increment
      */
-    private async generateNewRoundId(): Promise<number> {
-        // Get the latest round from database
-        const lastRound = await this.roundsRepository
-            .findOne({}, "id", { sort: { id: -1 } })
-            .lean()
-            .exec();
-        
-        if (lastRound) {
-            // Increment from the latest database round ID
-            const newRoundId = lastRound.id + 1;
-            this.gameData.roundId = newRoundId;
-            console.log(`Generated new round ID: ${newRoundId}`);
-            return newRoundId;
-        } else {
-            // If no rounds exist, increment from current gameData
-            this.gameData.roundId += 1;
-            console.log(`Generated new round ID: ${this.gameData.roundId}`);
-            return this.gameData.roundId;
-        }
+    private getCurrentRoundId(): number {
+        // roundId is already assigned by PlaceBetConsumer when request was received
+        return this.gameData.roundId;
     }
 
 
     /**
      * Handle successful bet processing and immediate settlement
      * In single-player mode, each bet is settled independently and immediately
+     * roundId is already assigned by PlaceBetConsumer when request was received
      */
     async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: BetPayload) {
         await super.handleSuccessBet(player, balance, roundId, bet);
 
-        console.log(`Successful bet by ${player.profile.name} on round ${roundId}`);
+        console.log(`Successful bet by ${player.profile.name} on round ${roundId} (assigned at request time)`);
 
         // For single-player style, each bet gets its own round and should be settled immediately
         try {

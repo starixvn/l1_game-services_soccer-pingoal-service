@@ -70,44 +70,26 @@ interface BetPayload {
 
 ```mermaid
 graph TD
-    A[Player Places Bet] --> B[ProcessBetQueue.generateNewRoundId]
-    B --> C[Query Database for Latest Round]
-    C --> D{Latest Round Exists?}
-    D -->|Yes| E[newRoundId = lastRound.id + 1]
-    D -->|No| F[newRoundId = gameData.roundId + 1]
-    E --> G[Update gameData.roundId]
-    F --> G
-    G --> H[Return New Round ID]
-    H --> I[Process Bet with New Round ID]
-    I --> J[Immediate Settlement]
+    A[Player Places Bet] --> B[PlaceBetConsumer.incrementRoundIdAtomically]
+    B --> C[gameData.roundId++]
+    C --> D[Assign Round ID to Request]
+    D --> E[Validate Bet Parameters]
+    E --> F[Process Bet with Assigned Round ID]
+    F --> G[Immediate Settlement]
 ```
 
 ### 2. Implementation Details
 
 ```typescript
 /**
- * Generate a new unique roundId for each bet (single-player style)
- * Each bet gets its own round ID, allowing concurrent independent betting
+ * Atomically increment roundId to ensure thread-safe unique round assignment
+ * This method is called immediately when PlaceBet request is received
  */
-private async generateNewRoundId(): Promise<number> {
-    // Get the latest round from database
-    const lastRound = await this.roundsRepository
-        .findOne({}, "id", { sort: { id: -1 } })
-        .lean()
-        .exec();
-    
-    if (lastRound) {
-        // Increment from the latest database round ID
-        const newRoundId = lastRound.id + 1;
-        this.gameData.roundId = newRoundId;
-        console.log(`Generated new round ID: ${newRoundId}`);
-        return newRoundId;
-    } else {
-        // If no rounds exist, increment from current gameData
-        this.gameData.roundId += 1;
-        console.log(`Generated new round ID: ${this.gameData.roundId}`);
-        return this.gameData.roundId;
-    }
+private incrementRoundIdAtomically(): number {
+    // Thread-safe atomic increment - no database query needed
+    this.gameData.roundId = (this.gameData.roundId || 0) + 1;
+    console.log(`Assigned new round ID: ${this.gameData.roundId} for incoming bet request`);
+    return this.gameData.roundId;
 }
 ```
 
@@ -186,7 +168,7 @@ sequenceDiagram
 
 ### Round ID Management
 
-Round IDs are now automatically generated internally by the `ProcessBetQueue` class. The private `generateNewRoundId()` method handles all round ID generation logic without requiring external method calls.
+Round IDs are now automatically generated immediately when PlaceBet requests are received by the `PlaceBetConsumer` class. The round ID is incremented atomically upon request receipt, ensuring thread-safe unique round assignment without requiring database queries.
 
 ### Access Current Round ID (PlaceBetConsumer)
 

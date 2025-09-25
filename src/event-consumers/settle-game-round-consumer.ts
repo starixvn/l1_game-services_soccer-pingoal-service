@@ -55,10 +55,6 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         try {
             // Call our overridden settleRound method
             await this.settleRound();
-        
-        } catch (error) {
-         
-            throw error;
         } finally {
             // Always clean up state after settlement
             this.currentPlayerSelections = null;
@@ -141,6 +137,10 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             return this.definition.generateResult();
         }
         
+        if (!this.currentRoundId) {
+            throw new Error('currentRoundId is required but not available');
+        }
+        
         console.log("gameData", this.gameData);
         
         console.log(`Generating result for round ${this.currentRoundId} with player tunnel selections`);
@@ -149,7 +149,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         // Note: Don't clear selections here as settleRoundWithSelections handles cleanup
         return generateResult(
             this.currentPlayerSelections, 
-            this.currentRoundId!,
+            this.currentRoundId,
             this.gameData,
             this.currentPlayerInfo?.nickname
         );

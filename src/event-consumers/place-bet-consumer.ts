@@ -31,7 +31,7 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
         return this.gameData.roundId;
     }
 
-    overrideconsume(player: any, payload: any): void {
+    override consume(player: any, payload: any): void {
         const newPayload = {
             ...payload,
             roundId: this.incrementRoundIdAtomically(),
@@ -40,7 +40,7 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
         super.consume(player, newPayload);
     }
 
-    validateBetRequestParams(request: any) {
+    override validateBetRequestParams(request: any) {
 
         const { redTunnel, blueTunnel } = request;
 
@@ -70,6 +70,27 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
                 failure: redTunnel !== undefined && blueTunnel !== undefined && 
                         redTunnel !== null && blueTunnel !== null && redTunnel === blueTunnel,
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
+            },
+        ];
+    }
+
+    override composeBettingTimeValidationCriteria(roundId: number) {
+        const configs = this.gameData.gameConfigs;
+
+        return [
+            {
+                failure: !configs.enabled,
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
+            },
+            {
+                failure: roundId !== this.gameData.roundId,
+                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { gameRoundId: roundId }),
+            },
+            {
+                failure:
+                    this.gameData.remainingTime < this.definition.durations.lockingBet ||
+                    this.gameData.remainingTime >= this.definition.durations.placingBets,
+                notice: this.getNoticeObj(helpers.noticeHelper.placeBetNextRound),
             },
         ];
     }

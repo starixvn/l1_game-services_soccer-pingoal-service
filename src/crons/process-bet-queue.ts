@@ -1,6 +1,7 @@
 import type { Socket } from "socket.io";
 
 import { Core } from "sc-game-base";
+import { helpers } from "sc-common";
 
 
 import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
@@ -37,14 +38,27 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         // Removed roundsRepository initialization as we no longer query database for roundId
     }
 
-    
+    override composeBettingTimeValidationCriteria(roundId:Number) {
+        return [
+            {
+                failure: roundId !== this.gameData.roundId,
+                notice: { errorCode: helpers.noticeHelper.placeBetNextRound },
+            },
+            {
+                failure:
+                    this.gameData.remainingTime < this.definition.durations.lockingBet ||
+                    this.gameData.remainingTime >= this.definition.durations.placingBets,
+                notice: { errorCode: helpers.noticeHelper.placeBetNextRound },
+            },
+        ];
+    }
 
     /**
      * Handle successful bet processing and immediate settlement
      * In single-player mode, each bet is settled independently and immediately
      * roundId is already assigned by PlaceBetConsumer when request was received
      */
-    async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: BetPayload) {
+    override async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: BetPayload) {
         await super.handleSuccessBet(player, balance, roundId, bet);
 
         console.log(`Successful bet by ${player.profile.name} on round ${roundId} (assigned at request time)`);

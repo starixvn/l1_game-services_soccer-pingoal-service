@@ -37,16 +37,7 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         // Removed roundsRepository initialization as we no longer query database for roundId
     }
 
-    /**
-     * DEPRECATED: Round ID generation is now handled in PlaceBetConsumer
-     * Round IDs are assigned immediately when PlaceBet request is received
-     * This ensures no database queries are needed and provides immediate thread-safe increment
-     */
-    private getCurrentRoundId(): number {
-        // roundId is already assigned by PlaceBetConsumer when request was received
-        return this.gameData.roundId;
-    }
-
+    
 
     /**
      * Handle successful bet processing and immediate settlement
@@ -60,12 +51,13 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 
         // For single-player style, each bet gets its own round and should be settled immediately
         try {
-            // Pass player's specified tunnel choices and player info to settlement method (thread-safe)
+            // Pass player's specified tunnel choices, roundId from bet payload, and player info to settlement method (thread-safe)
             await this.settleGameRoundConsumer.settleRoundWithSelections(
                 {
                     redTunnel: bet.redTunnel,
                     blueTunnel: bet.blueTunnel
                 },
+                bet.roundId, // Use the roundId generated when player placed their bet
                 {
                     nickname: player.profile.name
                 }

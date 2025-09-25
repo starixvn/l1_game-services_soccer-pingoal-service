@@ -89,30 +89,32 @@ describe("SettleGameRoundConsumer", () => {
     describe("settleRoundWithSelections", () => {
         it("should call settleRound and clean up selections", async () => {
             const selections = { redTunnel: 2, blueTunnel: 4 };
+            const roundId = 123;
             
             // Mock the base settleRound method
             const mockSettleRound = jest.fn().mockResolvedValue(undefined);
             settleGameRoundConsumer.settleRound = mockSettleRound;
             
-            await settleGameRoundConsumer.settleRoundWithSelections(selections);
+            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
             
             // Verify settleRound was called
             expect(mockSettleRound).toHaveBeenCalled();
             
             // Verify logging
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Starting settlement for pre-assigned round 123 with tunnel selections: red=2, blue=4, player=unknown"
+                "Starting settlement with tunnel selections: red=2, blue=4, roundId=123, player=unknown"
             );
         });
 
         it("should clean up selections even if settleRound throws error", async () => {
             const selections = { redTunnel: 3, blueTunnel: 5 };
+            const roundId = 124;
             
             // Mock settleRound to throw error - must be done before calling settleRoundWithSelections
             const mockSettleRound = jest.fn().mockRejectedValue(new Error("Settlement error"));
             settleGameRoundConsumer.settleRound = mockSettleRound;
             
-            await expect(settleGameRoundConsumer.settleRoundWithSelections(selections))
+            await expect(settleGameRoundConsumer.settleRoundWithSelections(selections, roundId))
                 .rejects.toThrow("Settlement error");
             
             // After error, selections should still be cleared
@@ -184,6 +186,8 @@ describe("SettleGameRoundConsumer", () => {
                 const selections = { redTunnel: 1, blueTunnel: 2 };
                 
                 settleGameRoundConsumer.setPlayerTunnelSelections(selections);
+                // Set currentRoundId for testing
+                (settleGameRoundConsumer as any).currentRoundId = 123;
                 const result = settleGameRoundConsumer.generateResult();
 
                 expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123, {roundId: 123}, undefined);
@@ -197,6 +201,8 @@ describe("SettleGameRoundConsumer", () => {
                 const selections = { redTunnel: 1, blueTunnel: 2 };
                 
                 settleGameRoundConsumer.setPlayerTunnelSelections(selections);
+                // Set currentRoundId for testing
+                (settleGameRoundConsumer as any).currentRoundId = 123;
                 settleGameRoundConsumer.generateResult();
 
                 // Call generateResult again - should still use selections since generateResult no longer clears them
@@ -222,15 +228,17 @@ describe("SettleGameRoundConsumer", () => {
 
                 // First round
                 settleGameRoundConsumer.setPlayerTunnelSelections(firstSelections);
+                (settleGameRoundConsumer as any).currentRoundId = 123;
                 const result1 = settleGameRoundConsumer.generateResult();
 
                 // Second round  
                 settleGameRoundConsumer.setPlayerTunnelSelections(secondSelections);
+                (settleGameRoundConsumer as any).currentRoundId = 124;
                 const result2 = settleGameRoundConsumer.generateResult();
 
                 expect(mockGenerateResult).toHaveBeenCalledTimes(2);
                 expect(mockGenerateResult).toHaveBeenNthCalledWith(1, firstSelections, 123, {roundId: 123}, undefined);
-                expect(mockGenerateResult).toHaveBeenNthCalledWith(2, secondSelections, 123, {roundId: 123}, undefined);
+                expect(mockGenerateResult).toHaveBeenNthCalledWith(2, secondSelections, 124, {roundId: 123}, undefined);
                 expect(result1).toEqual(firstResult);
                 expect(result2).toEqual(secondResult);
             });
@@ -278,6 +286,7 @@ describe("SettleGameRoundConsumer", () => {
                 });
 
                 settleGameRoundConsumer.setPlayerTunnelSelections(selections);
+                (settleGameRoundConsumer as any).currentRoundId = 123;
 
                 expect(() => {
                     settleGameRoundConsumer.generateResult();
@@ -300,6 +309,7 @@ describe("SettleGameRoundConsumer", () => {
         describe("integration scenarios", () => {
             it("should handle complete workflow with settleRoundWithSelections: set selections -> generate -> clear", async () => {
                 const selections = { redTunnel: 1, blueTunnel: 2 };
+                const roundId = 125;
                 const playerResult = { ...mockResult, redTunnel: 1, blueTunnel: 2 };
                 const fallbackResult = {
                     red: 0,
@@ -317,7 +327,7 @@ describe("SettleGameRoundConsumer", () => {
                 settleGameRoundConsumer.settleRound = mockSettleRound;
 
                 // Step 1: Use settleRoundWithSelections (thread-safe method)
-                await settleGameRoundConsumer.settleRoundWithSelections(selections);
+                await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
 
                 expect(mockSettleRound).toHaveBeenCalled();
 
@@ -339,7 +349,7 @@ describe("SettleGameRoundConsumer", () => {
                     { redTunnel: 6, blueTunnel: 1 }
                 ];
 
-                boundarySelections.forEach(selections => {
+                boundarySelections.forEach((selections, index) => {
                     mockGenerateResult.mockReturnValue({
                         ...mockResult,
                         redTunnel: selections.redTunnel,
@@ -347,9 +357,10 @@ describe("SettleGameRoundConsumer", () => {
                     });
 
                     settleGameRoundConsumer.setPlayerTunnelSelections(selections);
+                    (settleGameRoundConsumer as any).currentRoundId = 123 + index;
                     const result = settleGameRoundConsumer.generateResult();
 
-                    expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123, {roundId: 123}, undefined);
+                    expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123 + index, {roundId: 123}, undefined);
                     expect(result.redTunnel).toBe(selections.redTunnel);
                     expect(result.blueTunnel).toBe(selections.blueTunnel);
                 });
@@ -363,6 +374,7 @@ describe("SettleGameRoundConsumer", () => {
             mockGenerateResult.mockReturnValue(mockResult);
 
             settleGameRoundConsumer.setPlayerTunnelSelections(selections);
+            (settleGameRoundConsumer as any).currentRoundId = 123;
             settleGameRoundConsumer.generateResult();
 
             expect(consoleLogSpy).toHaveBeenCalledTimes(3);
@@ -392,6 +404,7 @@ describe("SettleGameRoundConsumer", () => {
     describe("state management", () => {
         it("should maintain independent state across multiple instances", () => {
             const secondInstance = new SettleGameRoundConsumer({} as any);
+            secondInstance.gameData = { roundId: 124 } as any;
             
             const selections1 = { redTunnel: 1, blueTunnel: 2 };
             const selections2 = { redTunnel: 3, blueTunnel: 4 };
@@ -400,7 +413,9 @@ describe("SettleGameRoundConsumer", () => {
 
             // Set different selections on each instance
             settleGameRoundConsumer.setPlayerTunnelSelections(selections1);
+            (settleGameRoundConsumer as any).currentRoundId = 123;
             secondInstance.setPlayerTunnelSelections(selections2);
+            (secondInstance as any).currentRoundId = 124;
 
             // Generate results
             settleGameRoundConsumer.generateResult();
@@ -408,7 +423,7 @@ describe("SettleGameRoundConsumer", () => {
 
             expect(mockGenerateResult).toHaveBeenCalledTimes(2);
             expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, 123, {roundId: 123}, undefined);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, 123, {roundId: 123}, undefined);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, 124, {roundId: 124}, undefined);
         });
     });
 });

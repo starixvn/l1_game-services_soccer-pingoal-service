@@ -139,12 +139,12 @@ describe("ProcessBetQueue", () => {
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
-                }, {
+                }, mockBet.roundId, {
                     nickname: "TestPlayer"
                 });
 
             // Verify success logging
-            expect(console.log).toHaveBeenCalledWith(`Successful bet by ${mockPlayer.profile.name} on round ${roundId}`);
+            expect(console.log).toHaveBeenCalledWith(`Successful bet by ${mockPlayer.profile.name} on round ${roundId} (assigned at request time)`);
             expect(console.log).toHaveBeenCalledWith(
                 `Settlement completed for round ${roundId} with player tunnel selections: red=${mockBet.redTunnel}, blue=${mockBet.blueTunnel}, player=${mockPlayer.profile.name}`
             );
@@ -167,7 +167,7 @@ describe("ProcessBetQueue", () => {
                 .toHaveBeenCalledWith({
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
-                }, {
+                }, mockBet.roundId, {
                     nickname: "TestPlayer"
                 });
 
@@ -220,7 +220,7 @@ describe("ProcessBetQueue", () => {
                     .toHaveBeenCalledWith({
                         redTunnel: tunnelCase.redTunnel,
                         blueTunnel: tunnelCase.blueTunnel
-                    }, {
+                    }, roundId, {
                         nickname: "TestPlayer"
                     });
             }
@@ -249,7 +249,7 @@ describe("ProcessBetQueue", () => {
                 amount: 250,
                 betChoice: "red",
                 freeBet: false,
-                roundId: 0, // Will be overridden
+                roundId: 151, // Use the expected roundId
                 mode: "single",
                 receivedTime: new Date(),
                 redTunnel: 2,
@@ -264,7 +264,7 @@ describe("ProcessBetQueue", () => {
             expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith({
                 redTunnel: 2,
                 blueTunnel: 5
-            }, {
+            }, 151, {
                 nickname: "IntegrationTest"
             });
         });

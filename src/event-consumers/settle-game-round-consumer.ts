@@ -25,20 +25,7 @@ interface PlayerInfo {
 }
 
 export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.SettleGameRoundConsumer {
-    private currentPlayerSelections: PlayerTunnelSelections | null = null;
-    private currentPlayerInfo: PlayerInfo | null = null;
-    private currentRoundId: number | null = null;
-
-    
-    /**
-     * Set the current player's tunnel selections before settlement
-     * @deprecated Use settleRoundWithSelections instead to avoid race conditions
-     * This should be called by ProcessBetQueue before settling the round
-     */
-    setPlayerTunnelSelections(selections: PlayerTunnelSelections): void {
-        this.currentPlayerSelections = selections;
-        console.log(`Set player tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}`);
-    }
+   
     
     /**
      * Settle a round with specific tunnel selections, player info, and roundId (thread-safe)
@@ -47,31 +34,17 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     async settleRoundWithSelections(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Promise<void> {
         console.log(`Starting settlement with tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}, roundId=${roundId}, player=${playerInfo?.nickname || 'unknown'}`);
         
-        // Set selections, player info, and the roundId from the bet
-        this.currentPlayerSelections = selections;
-        this.currentPlayerInfo = playerInfo || null;
-        this.currentRoundId = roundId;
-    
-        try {
-            // Call our overridden settleRound method
-            await this.settleRound();
-        } finally {
-            // Always clean up state after settlement
-            this.currentPlayerSelections = null;
-            this.currentPlayerInfo = null;
-            this.currentRoundId = null;
-        }
+        // Call our private thread-safe settleRound method with all parameters
+        await this.settleRoundWithId(selections, roundId, playerInfo);
     }
     
     /**
-     * Override settleRound to use player's bet roundId
-     * This version uses the roundId generated when player placed their bet
+     * Private method to settle round with specific parameters (thread-safe)
      */
-    async settleRound(): Promise<void> {
-        const result = this.generateResult();
+    private async settleRoundWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Promise<void> {
+        const result = this.generateResultWithId(selections, roundId, playerInfo);
         const settlementResult = (this.definition as any).settle(result);
         const { exchangeRates } = this.gameData;
-        const roundId = this.currentRoundId;
         
         // Validate required fields before creating round
         if (!roundId) {
@@ -110,9 +83,9 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             // No need for additional single-player mode since queue ensures sequential processing
             
             // Reset player data for next round if player info is available
-            if (this.currentPlayerInfo?.nickname) {
-                this.resetForNextRound(this.currentPlayerInfo.nickname);
-                console.log(`Reset player data for next round: ${this.currentPlayerInfo.nickname}`);
+            if (playerInfo?.nickname) {
+                this.resetForNextRound(playerInfo.nickname);
+                console.log(`Reset player data for next round: ${playerInfo.nickname}`);
             }
         }
     }
@@ -127,30 +100,49 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     }
     
     /**
-     * Override generateResult to use player's specified tunnel choices
-     * instead of random values
+     * Private method to generate result with specific parameters (thread-safe)
      */
-    override generateResult(): Result {
-        if (!this.currentPlayerSelections) {
-            console.warn("No player tunnel selections available, using legacy random generation");
-            return this.definition.generateResult();
-        }
-        
-        if (!this.currentRoundId) {
-            throw new Error('currentRoundId is required but not available');
-        }
-        
+    private generateResultWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Result {
         console.log("gameData", this.gameData);
-        
-        console.log(`Generating result for round ${this.currentRoundId} with player tunnel selections`);
+        console.log(`Generating result for round ${roundId} with player tunnel selections`);
         
         // Generate result with player's specified tunnel choices and player info for admin settlement
-        // Note: Don't clear selections here as settleRoundWithSelections handles cleanup
         return generateResult(
-            this.currentPlayerSelections, 
-            this.currentRoundId,
+            selections, 
+            roundId,
             this.gameData,
-            this.currentPlayerInfo?.nickname
+            playerInfo?.nickname
         );
+    }
+    
+    /**
+     * Override generateResult to use player's specified tunnel choices
+     * This method is kept for compatibility but should not be used directly
+     * @deprecated Use settleRoundWithSelections instead
+     */
+    override generateResult(): Result {
+        console.warn("generateResult() called directly - this may cause race conditions. Use settleRoundWithSelections instead.");
+        // This is a fallback - should not be used in production
+        return this.definition.generateResult();
+    }
+    
+    /**
+     * Override settleRound - kept for compatibility but should not be used directly
+     * @deprecated Use settleRoundWithSelections instead
+     */
+    async settleRound(): Promise<void> {
+        console.warn("settleRound() called directly - this may cause race conditions. Use settleRoundWithSelections instead.");
+        // This is a fallback - should not be used in production
+        throw new Error("Direct settleRound() calls are not supported. Use settleRoundWithSelections() instead.");
+    }
+    
+    /**
+     * Set player tunnel selections - kept for compatibility but should not be used directly
+     * @deprecated Use settleRoundWithSelections instead
+     */
+    setPlayerTunnelSelections(selections: PlayerTunnelSelections): void {
+        console.warn("setPlayerTunnelSelections is deprecated and not thread-safe. Use settleRoundWithSelections instead.");
+        // This method is kept for compatibility but does nothing
+        // The actual tunnel selections are now passed directly to settleRoundWithSelections
     }
 }

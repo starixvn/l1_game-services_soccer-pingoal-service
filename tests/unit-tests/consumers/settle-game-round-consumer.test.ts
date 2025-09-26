@@ -13,10 +13,12 @@ jest.mock("sc-game-base", () => ({
         BaseEventConsumers: {
             SettleGameRoundConsumer: class MockBaseSettleGameRoundConsumer {
                 definition = {
-                    generateResult: jest.fn()
+                    generateResult: jest.fn(),
+                    settle: jest.fn()
                 };
                 gameData = {
-                    roundId: 123
+                    roundId: 123,
+                    exchangeRates: { exId: 1 }
                 };
             }
         }
@@ -27,6 +29,7 @@ describe("SettleGameRoundConsumer", () => {
     let settleGameRoundConsumer: SettleGameRoundConsumer;
     let mockGenerateResult: jest.MockedFunction<typeof generateResult>;
     let mockDefinitionGenerateResult: jest.Mock;
+    let mockDefinitionSettle: jest.Mock;
     let consoleLogSpy: jest.SpyInstance;
     let consoleWarnSpy: jest.SpyInstance;
 
@@ -36,6 +39,12 @@ describe("SettleGameRoundConsumer", () => {
         redTunnel: 1,
         blueTunnel: 2,
         video: "test-video-hash"
+    };
+
+    const mockSettlementResult = {
+        blue: false,
+        red: true,
+        draw: false
     };
 
     beforeEach(() => {
@@ -73,12 +82,18 @@ describe("SettleGameRoundConsumer", () => {
         
         // Mock gameData for settleRound - use roundId 123 to match test expectations
         settleGameRoundConsumer.gameData = {
-            roundId: 123
+            roundId: 123,
+            exchangeRates: { exId: 1 },
+            ingame: {} // Add ingame property to prevent TypeError
         } as any;
         
         // Get references to mocked functions
         mockGenerateResult = generateResult as jest.MockedFunction<typeof generateResult>;
         mockDefinitionGenerateResult = settleGameRoundConsumer.definition.generateResult as jest.Mock;
+        mockDefinitionSettle = settleGameRoundConsumer.definition.settle as jest.Mock;
+        
+        // Set up default mock return values
+        mockDefinitionSettle.mockReturnValue(mockSettlementResult);
     });
 
     afterEach(() => {
@@ -87,343 +102,186 @@ describe("SettleGameRoundConsumer", () => {
     });
 
     describe("settleRoundWithSelections", () => {
-        it("should call settleRound and clean up selections", async () => {
+        it("should successfully settle round with selections and roundId", async () => {
             const selections = { redTunnel: 2, blueTunnel: 4 };
             const roundId = 123;
+            const playerInfo = { nickname: "testPlayer" };
             
-            // Mock the base settleRound method
-            const mockSettleRound = jest.fn().mockResolvedValue(undefined);
-            settleGameRoundConsumer.settleRound = mockSettleRound;
+            // Mock generateResult to return expected result
+            mockGenerateResult.mockReturnValue(mockResult);
             
-            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
+            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId, playerInfo);
             
-            // Verify settleRound was called
-            expect(mockSettleRound).toHaveBeenCalled();
+            // Verify generateResult was called with correct parameters
+            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "testPlayer");
             
             // Verify logging
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Starting settlement with tunnel selections: red=2, blue=4, roundId=123, player=unknown"
+                "Starting settlement with tunnel selections: red=2, blue=4, roundId=123, player=testPlayer"
             );
+            expect(consoleLogSpy).toHaveBeenCalledWith("gameData", {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}});
+            expect(consoleLogSpy).toHaveBeenCalledWith("Generating result for round 123 with player tunnel selections");
         });
 
-        it("should clean up selections even if settleRound throws error", async () => {
+        it("should handle settlement without player info", async () => {
             const selections = { redTunnel: 3, blueTunnel: 5 };
             const roundId = 124;
             
-            // Mock settleRound to throw error - must be done before calling settleRoundWithSelections
-            const mockSettleRound = jest.fn().mockRejectedValue(new Error("Settlement error"));
-            settleGameRoundConsumer.settleRound = mockSettleRound;
+            mockGenerateResult.mockReturnValue(mockResult);
+            
+            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
+            
+            // Verify generateResult was called with undefined nickname
+            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
+            
+            // Verify logging shows unknown player (4 logs since no player reset log)
+            expect(consoleLogSpy).toHaveBeenCalledTimes(4);
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(1,
+                "Starting settlement with tunnel selections: red=3, blue=5, roundId=124, player=unknown"
+            );
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(2,
+                "gameData", {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}
+            );
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(3,
+                "Generating result for round 124 with player tunnel selections"
+            );
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(4,
+                "Creating round in database with ID: 124, exchangeRateId: 1"
+            );
+        });
+
+        it("should handle errors during settlement", async () => {
+            const selections = { redTunnel: 1, blueTunnel: 6 };
+            const roundId = 125;
+            
+            // Mock generateResult to throw error
+            mockGenerateResult.mockImplementation(() => {
+                throw new Error("Result generation failed");
+            });
             
             await expect(settleGameRoundConsumer.settleRoundWithSelections(selections, roundId))
-                .rejects.toThrow("Settlement error");
-            
-            // After error, selections should still be cleared
-            const fallbackResult = { red: 0, blue: 0, redTunnel: -1, blueTunnel: -1, video: "fallback" };
-            mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
-            
-            const result = settleGameRoundConsumer.generateResult();
-            expect(result).toEqual(fallbackResult);
-            expect(mockDefinitionGenerateResult).toHaveBeenCalled();
+                .rejects.toThrow("Result generation failed");
         });
     });
 
-    describe("setPlayerTunnelSelections", () => {
-        it("should set player tunnel selections correctly", () => {
-            const selections = {
-                redTunnel: 1,
-                blueTunnel: 2
-            };
+    describe("deprecated methods", () => {
+        it("should warn when setPlayerTunnelSelections is called", () => {
+            const selections = { redTunnel: 1, blueTunnel: 2 };
 
             settleGameRoundConsumer.setPlayerTunnelSelections(selections);
 
-            expect(consoleLogSpy).toHaveBeenCalledWith(
-                "Set player tunnel selections: red=1, blue=2"
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                "setPlayerTunnelSelections is deprecated and not thread-safe. Use settleRoundWithSelections instead."
             );
         });
 
-        it("should handle different tunnel selection combinations", () => {
-            const testCases = [
-                { redTunnel: 1, blueTunnel: 6 },
-                { redTunnel: 3, blueTunnel: 4 },
-                { redTunnel: 6, blueTunnel: 1 }
-            ];
-
-            testCases.forEach(selections => {
-                settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                
-                expect(consoleLogSpy).toHaveBeenCalledWith(
-                    `Set player tunnel selections: red=${selections.redTunnel}, blue=${selections.blueTunnel}`
-                );
-            });
-
-            expect(consoleLogSpy).toHaveBeenCalledTimes(testCases.length);
+        it("should warn and throw error when settleRound is called directly", async () => {
+            await expect(settleGameRoundConsumer.settleRound())
+                .rejects.toThrow("Direct settleRound() calls are not supported. Use settleRoundWithSelections() instead.");
+            
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                "settleRound() called directly - this may cause race conditions. Use settleRoundWithSelections instead."
+            );
         });
 
-        it("should overwrite previous tunnel selections", () => {
-            const firstSelections = { redTunnel: 1, blueTunnel: 2 };
-            const secondSelections = { redTunnel: 3, blueTunnel: 4 };
+        it("should warn when generateResult is called directly", () => {
+            const fallbackResult = { red: 0, blue: 0, redTunnel: -1, blueTunnel: -1, video: "fallback" };
+            mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
 
-            settleGameRoundConsumer.setPlayerTunnelSelections(firstSelections);
-            settleGameRoundConsumer.setPlayerTunnelSelections(secondSelections);
+            const result = settleGameRoundConsumer.generateResult();
 
-            expect(consoleLogSpy).toHaveBeenCalledTimes(2);
-            expect(consoleLogSpy).toHaveBeenNthCalledWith(1, 
-                "Set player tunnel selections: red=1, blue=2"
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                "generateResult() called directly - this may cause race conditions. Use settleRoundWithSelections instead."
             );
-            expect(consoleLogSpy).toHaveBeenNthCalledWith(2,
-                "Set player tunnel selections: red=3, blue=4"
-            );
+            expect(result).toEqual(fallbackResult);
         });
     });
 
-    describe("generateResult", () => {
-        describe("with player tunnel selections", () => {
-            beforeEach(() => {
-                mockGenerateResult.mockReturnValue(mockResult);
-            });
+    describe("thread safety", () => {
+        it("should handle concurrent settlements without race conditions", async () => {
+            const selections1 = { redTunnel: 1, blueTunnel: 2 };
+            const selections2 = { redTunnel: 3, blueTunnel: 4 };
+            const roundId1 = 123;
+            const roundId2 = 124;
+            const playerInfo1 = { nickname: "player1" };
+            const playerInfo2 = { nickname: "player2" };
 
-            it("should generate result using player tunnel selections", () => {
-                const selections = { redTunnel: 1, blueTunnel: 2 };
-                
-                settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                // Set currentRoundId for testing
-                (settleGameRoundConsumer as any).currentRoundId = 123;
-                const result = settleGameRoundConsumer.generateResult();
+            mockGenerateResult.mockReturnValue(mockResult);
 
-                expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123, {roundId: 123}, undefined);
-                expect(result).toEqual(mockResult);
-                expect(consoleLogSpy).toHaveBeenCalledWith(
-                    "Generating result for round 123 with player tunnel selections"
-                );
-            });
+            // Simulate concurrent settlements
+            const settlement1 = settleGameRoundConsumer.settleRoundWithSelections(selections1, roundId1, playerInfo1);
+            const settlement2 = settleGameRoundConsumer.settleRoundWithSelections(selections2, roundId2, playerInfo2);
 
-            it("should NOT clear player selections after generating result (handled by settleRoundWithSelections)", () => {
-                const selections = { redTunnel: 1, blueTunnel: 2 };
-                
-                settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                // Set currentRoundId for testing
-                (settleGameRoundConsumer as any).currentRoundId = 123;
-                settleGameRoundConsumer.generateResult();
+            await Promise.all([settlement1, settlement2]);
 
-                // Call generateResult again - should still use selections since generateResult no longer clears them
-                const secondResult = settleGameRoundConsumer.generateResult();
-
-                // Should still use the selections, not fall back
-                expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-                expect(secondResult).toEqual(mockResult);
-                expect(mockDefinitionGenerateResult).not.toHaveBeenCalled();
-                expect(consoleWarnSpy).not.toHaveBeenCalled();
-            });
-
-            it("should handle multiple generate result calls with different selections", () => {
-                const firstSelections = { redTunnel: 1, blueTunnel: 2 };
-                const secondSelections = { redTunnel: 3, blueTunnel: 4 };
-                
-                const firstResult = { ...mockResult, redTunnel: 1, blueTunnel: 2 };
-                const secondResult = { ...mockResult, redTunnel: 3, blueTunnel: 4 };
-                
-                mockGenerateResult
-                    .mockReturnValueOnce(firstResult)
-                    .mockReturnValueOnce(secondResult);
-
-                // First round
-                settleGameRoundConsumer.setPlayerTunnelSelections(firstSelections);
-                (settleGameRoundConsumer as any).currentRoundId = 123;
-                const result1 = settleGameRoundConsumer.generateResult();
-
-                // Second round  
-                settleGameRoundConsumer.setPlayerTunnelSelections(secondSelections);
-                (settleGameRoundConsumer as any).currentRoundId = 124;
-                const result2 = settleGameRoundConsumer.generateResult();
-
-                expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-                expect(mockGenerateResult).toHaveBeenNthCalledWith(1, firstSelections, 123, {roundId: 123}, undefined);
-                expect(mockGenerateResult).toHaveBeenNthCalledWith(2, secondSelections, 124, {roundId: 123}, undefined);
-                expect(result1).toEqual(firstResult);
-                expect(result2).toEqual(secondResult);
-            });
+            // Verify both settlements used correct parameters
+            expect(mockGenerateResult).toHaveBeenCalledTimes(2);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "player1");
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "player2");
         });
 
-        describe("without player tunnel selections", () => {
-            it("should fall back to definition.generateResult when no player selections", () => {
-                const fallbackResult: Result = {
-                    red: 0,
-                    blue: 3,
-                    redTunnel: -1,
-                    blueTunnel: -1,
-                    video: "fallback-video"
-                };
-                mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
+        it("should maintain parameter isolation between settlements", async () => {
+            const selections1 = { redTunnel: 1, blueTunnel: 2 };
+            const selections2 = { redTunnel: 5, blueTunnel: 6 };
+            const roundId1 = 125;
+            const roundId2 = 126;
 
-                const result = settleGameRoundConsumer.generateResult();
+            const result1 = { ...mockResult, redTunnel: 1, blueTunnel: 2 };
+            const result2 = { ...mockResult, redTunnel: 5, blueTunnel: 6 };
 
-                expect(mockDefinitionGenerateResult).toHaveBeenCalled();
-                expect(mockGenerateResult).not.toHaveBeenCalled();
-                expect(result).toEqual(fallbackResult);
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    "No player tunnel selections available, using legacy random generation"
-                );
-            });
+            mockGenerateResult
+                .mockReturnValueOnce(result1)
+                .mockReturnValueOnce(result2);
 
-            it("should log warning when no player selections available", () => {
-                mockDefinitionGenerateResult.mockReturnValue(mockResult);
+            await settleGameRoundConsumer.settleRoundWithSelections(selections1, roundId1);
+            await settleGameRoundConsumer.settleRoundWithSelections(selections2, roundId2);
 
-                settleGameRoundConsumer.generateResult();
-
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    "No player tunnel selections available, using legacy random generation"
-                );
-            });
-        });
-
-        describe("error handling", () => {
-            it("should handle errors from generateResult helper", () => {
-                const selections = { redTunnel: 1, blueTunnel: 2 };
-                const error = new Error("Result generation failed");
-                
-                mockGenerateResult.mockImplementation(() => {
-                    throw error;
-                });
-
-                settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                (settleGameRoundConsumer as any).currentRoundId = 123;
-
-                expect(() => {
-                    settleGameRoundConsumer.generateResult();
-                }).toThrow("Result generation failed");
-            });
-
-            it("should handle errors from definition.generateResult", () => {
-                const error = new Error("Definition result generation failed");
-                
-                mockDefinitionGenerateResult.mockImplementation(() => {
-                    throw error;
-                });
-
-                expect(() => {
-                    settleGameRoundConsumer.generateResult();
-                }).toThrow("Definition result generation failed");
-            });
-        });
-
-        describe("integration scenarios", () => {
-            it("should handle complete workflow with settleRoundWithSelections: set selections -> generate -> clear", async () => {
-                const selections = { redTunnel: 1, blueTunnel: 2 };
-                const roundId = 125;
-                const playerResult = { ...mockResult, redTunnel: 1, blueTunnel: 2 };
-                const fallbackResult = {
-                    red: 0,
-                    blue: 0,
-                    redTunnel: -1,
-                    blueTunnel: -1,
-                    video: "fallback"
-                };
-
-                mockGenerateResult.mockReturnValue(playerResult);
-                mockDefinitionGenerateResult.mockReturnValue(fallbackResult);
-
-                // Mock the base settleRound method - must be done before calling settleRoundWithSelections
-                const mockSettleRound = jest.fn().mockResolvedValue(undefined);
-                settleGameRoundConsumer.settleRound = mockSettleRound;
-
-                // Step 1: Use settleRoundWithSelections (thread-safe method)
-                await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
-
-                expect(mockSettleRound).toHaveBeenCalled();
-
-                // Step 2: After settlement, selections should be cleared - generate result should fallback
-                const result2 = settleGameRoundConsumer.generateResult();
-
-                expect(result2).toEqual(fallbackResult);
-                expect(mockDefinitionGenerateResult).toHaveBeenCalled();
-                expect(consoleWarnSpy).toHaveBeenCalledWith(
-                    "No player tunnel selections available, using legacy random generation"
-                );
-            });
-        });
-
-        describe("boundary conditions", () => {
-            it("should handle valid tunnel boundary values", () => {
-                const boundarySelections = [
-                    { redTunnel: 1, blueTunnel: 6 },
-                    { redTunnel: 6, blueTunnel: 1 }
-                ];
-
-                boundarySelections.forEach((selections, index) => {
-                    mockGenerateResult.mockReturnValue({
-                        ...mockResult,
-                        redTunnel: selections.redTunnel,
-                        blueTunnel: selections.blueTunnel
-                    });
-
-                    settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-                    (settleGameRoundConsumer as any).currentRoundId = 123 + index;
-                    const result = settleGameRoundConsumer.generateResult();
-
-                    expect(mockGenerateResult).toHaveBeenCalledWith(selections, 123 + index, {roundId: 123}, undefined);
-                    expect(result.redTunnel).toBe(selections.redTunnel);
-                    expect(result.blueTunnel).toBe(selections.blueTunnel);
-                });
-            });
+            // Each settlement should use its own parameters
+            expect(mockGenerateResult).toHaveBeenCalledTimes(2);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
         });
     });
 
     describe("logging behavior", () => {
-        it("should log all expected messages in correct order", () => {
+        it("should log all expected messages during settlement", async () => {
             const selections = { redTunnel: 1, blueTunnel: 2 };
+            const roundId = 123;
+            const playerInfo = { nickname: "testPlayer" };
+            
             mockGenerateResult.mockReturnValue(mockResult);
 
-            settleGameRoundConsumer.setPlayerTunnelSelections(selections);
-            (settleGameRoundConsumer as any).currentRoundId = 123;
-            settleGameRoundConsumer.generateResult();
+            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId, playerInfo);
 
-            expect(consoleLogSpy).toHaveBeenCalledTimes(3);
+            expect(consoleLogSpy).toHaveBeenCalledTimes(5);
             expect(consoleLogSpy).toHaveBeenNthCalledWith(1,
-                "Set player tunnel selections: red=1, blue=2"
+                "Starting settlement with tunnel selections: red=1, blue=2, roundId=123, player=testPlayer"
             );
             expect(consoleLogSpy).toHaveBeenNthCalledWith(2,
-                "gameData", {roundId: 123}
+                "gameData", {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}
             );
             expect(consoleLogSpy).toHaveBeenNthCalledWith(3,
                 "Generating result for round 123 with player tunnel selections"
             );
-        });
-
-        it("should not log generation message when falling back to definition", () => {
-            mockDefinitionGenerateResult.mockReturnValue(mockResult);
-
-            settleGameRoundConsumer.generateResult();
-
-            expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-            expect(consoleLogSpy).not.toHaveBeenCalledWith(
-                expect.stringContaining("Generating result for round")
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(4,
+                "Creating round in database with ID: 123, exchangeRateId: 1"
+            );
+            expect(consoleLogSpy).toHaveBeenNthCalledWith(5,
+                "Reset player data for next round: testPlayer"
             );
         });
-    });
 
-    describe("state management", () => {
-        it("should maintain independent state across multiple instances", () => {
-            const secondInstance = new SettleGameRoundConsumer({} as any);
-            secondInstance.gameData = { roundId: 124 } as any;
-            
-            const selections1 = { redTunnel: 1, blueTunnel: 2 };
-            const selections2 = { redTunnel: 3, blueTunnel: 4 };
+        it("should log unknown player when no player info provided", async () => {
+            const selections = { redTunnel: 3, blueTunnel: 4 };
+            const roundId = 124;
             
             mockGenerateResult.mockReturnValue(mockResult);
 
-            // Set different selections on each instance
-            settleGameRoundConsumer.setPlayerTunnelSelections(selections1);
-            (settleGameRoundConsumer as any).currentRoundId = 123;
-            secondInstance.setPlayerTunnelSelections(selections2);
-            (secondInstance as any).currentRoundId = 124;
+            await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
 
-            // Generate results
-            settleGameRoundConsumer.generateResult();
-            secondInstance.generateResult();
-
-            expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, 123, {roundId: 123}, undefined);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, 124, {roundId: 124}, undefined);
+            expect(consoleLogSpy).toHaveBeenCalledWith(
+                "Starting settlement with tunnel selections: red=3, blue=4, roundId=124, player=unknown"
+            );
         });
     });
 });

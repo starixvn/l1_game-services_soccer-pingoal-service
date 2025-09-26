@@ -64,7 +64,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
 
         if (newRound) {
             // ✅ Create finish object with all result data
-            const finish = {
+            const roundResult = {
                 settlementResult,
                 result,
                 roundId: newRound.id,
@@ -73,11 +73,11 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             
             // ✅ Publish finish object to specific player (single-player game)
             if (playerInfo?.UID) {
-                (this as any).roundResultPublisher.publishToUser(playerInfo.UID, finish);
+                (this as any).roundResultPublisher.publishToUser(playerInfo.UID, {finish:roundResult});
             } 
             
             // Settle bets - this handles the individual player's settlement
-            await (this as any).settleBets(finish);        
+            await (this as any).settleBets(roundResult);        
                
             // Reset player data for next round if player info is available
             if (playerInfo?.nickname) {

@@ -38,7 +38,7 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         // Removed roundsRepository initialization as we no longer query database for roundId
     }
 
-    override composeBettingTimeValidationCriteria(roundId:Number) {
+    override composeBettingTimeValidationCriteria(roundId:number) {
         return [
             {
                 failure: roundId !== this.gameData.roundId,

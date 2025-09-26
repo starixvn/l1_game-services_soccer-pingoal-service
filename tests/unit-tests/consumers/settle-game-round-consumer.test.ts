@@ -107,7 +107,14 @@ describe("SettleGameRoundConsumer", () => {
             expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "testPlayer");
             
             // Verify publishToUser was called with correct parameters
-            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenCalledWith("player123", {});
+            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenCalledWith("player123", {
+                finish: {
+                    settlementResult: mockSettlementResult,
+                    result: mockResult,
+                    roundId: 123,
+                    time: expect.any(Date)
+                }
+            });
         });
 
         it("should handle settlement without player info", async () => {
@@ -165,8 +172,22 @@ describe("SettleGameRoundConsumer", () => {
             
             // Verify both used publishToUser with correct UIDs
             expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenCalledTimes(2);
-            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenNthCalledWith(1, "uid1", {});
-            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenNthCalledWith(2, "uid2", {});
+            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenNthCalledWith(1, "uid1", {
+                finish: {
+                    settlementResult: mockSettlementResult,
+                    result: mockResult,
+                    roundId: 123,
+                    time: expect.any(Date)
+                }
+            });
+            expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenNthCalledWith(2, "uid2", {
+                finish: {
+                    settlementResult: mockSettlementResult,
+                    result: mockResult,
+                    roundId: 123,
+                    time: expect.any(Date)
+                }
+            });
         });
 
         it("should maintain parameter isolation between settlements", async () => {

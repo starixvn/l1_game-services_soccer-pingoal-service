@@ -93,6 +93,9 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         });
 
         if (newRound) {
+            // ✅ Always publish round result first (same as base implementation)
+            (this as any).roundResultPublisher.publishRoundResult(this.collectRoundResult(result, settlementResult, roundId));
+
             const finish = {
                 settlementResult,
                 result,
@@ -103,10 +106,8 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             // Settle bets - this handles the individual player's settlement
             await (this as any).settleBets(finish);
             
-            // ✅ Single-player mode: Send round result to the individual player who placed the bet
-            if (this.currentPlayerInfo?.nickname) {
-                await this.publishRoundResultToPlayer(result, settlementResult, roundId, this.currentPlayerInfo.nickname);
-            }
+            // ✅ Base implementation handles result publishing automatically
+            // No need for additional single-player mode since queue ensures sequential processing
             
             // Reset player data for next round if player info is available
             if (this.currentPlayerInfo?.nickname) {
@@ -116,42 +117,6 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         }
     }
     
-    /**
-     * Send round result to individual player (single-player mode)
-     * Uses sc-game-base's existing publishToUser method
-     */
-    private async publishRoundResultToPlayer(result: Result, settlementResult: any, roundId: number, playerNickname: string): Promise<void> {
-        try {
-            // Find the player's UID from gameData.ingame
-            const playerData = this.gameData.ingame[playerNickname];
-            if (!playerData || !playerData.uid) {
-                console.warn(`Player ${playerNickname} not found in ingame data or missing UID`);
-                return;
-            }
-
-            const playerUID = playerData.uid;
-            const roundResult = (this as any).collectRoundResult(result, settlementResult, roundId);
-            
-            // Use the same payload structure as publishRoundResult
-            const payload = { finish: roundResult };
-            
-            // Add provably fair data if available (same as base implementation)
-            if (this.gameData.pf) {
-                payload.finish.pf = (this as any).roundResultPublisher.getHashedResult?.() || {
-                    ...this.gameData.pf,
-                    roundId: roundId,
-                    result: result
-                };
-            }
-
-            // ✅ Use sc-game-base's existing publishToUser method
-            (this as any).roundResultPublisher.publishToUser(playerUID, payload);
-            console.log(`Round result sent to player ${playerNickname} (UID: ${playerUID}) for round ${roundId}`);
-            
-        } catch (error) {
-            console.error(`Failed to send round result to player ${playerNickname}:`, error);
-        }
-    }
 
     /**
      * Reset player data for next round
@@ -165,7 +130,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
      * Override generateResult to use player's specified tunnel choices
      * instead of random values
      */
-    generateResult(): Result {
+    override generateResult(): Result {
         if (!this.currentPlayerSelections) {
             console.warn("No player tunnel selections available, using legacy random generation");
             return this.definition.generateResult();

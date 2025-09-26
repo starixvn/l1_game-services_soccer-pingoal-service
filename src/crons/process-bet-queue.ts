@@ -73,7 +73,8 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
                 },
                 bet.roundId, // Use the roundId generated when player placed their bet
                 {
-                    nickname: player.profile.name
+                    nickname: player.profile.name,
+                    UID: player.UID
                 }
             );
             console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}, player=${player.profile.name}`);

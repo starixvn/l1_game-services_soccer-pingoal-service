@@ -140,7 +140,8 @@ describe("ProcessBetQueue", () => {
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
                 }, mockBet.roundId, {
-                    nickname: "TestPlayer"
+                    nickname: "TestPlayer",
+                    UID: "player123"
                 });
 
             // Verify success logging
@@ -168,7 +169,8 @@ describe("ProcessBetQueue", () => {
                     redTunnel: mockBet.redTunnel,
                     blueTunnel: mockBet.blueTunnel
                 }, mockBet.roundId, {
-                    nickname: "TestPlayer"
+                    nickname: "TestPlayer",
+                    UID: "player123"
                 });
 
             // Verify error logging
@@ -221,7 +223,8 @@ describe("ProcessBetQueue", () => {
                         redTunnel: tunnelCase.redTunnel,
                         blueTunnel: tunnelCase.blueTunnel
                     }, roundId, {
-                        nickname: "TestPlayer"
+                        nickname: "TestPlayer",
+                        UID: "player123"
                     });
             }
         });
@@ -265,7 +268,8 @@ describe("ProcessBetQueue", () => {
                 redTunnel: 2,
                 blueTunnel: 5
             }, 151, {
-                nickname: "IntegrationTest"
+                nickname: "IntegrationTest",
+                UID: "integration-player"
             });
         });
 

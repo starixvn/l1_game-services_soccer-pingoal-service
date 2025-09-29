@@ -2,11 +2,11 @@ import mongoose from "mongoose";
 import { BET_CHOICES, MODEL_NAME_PREFIX } from "../constants";
 
 export interface Result {
-    red: number;
-    blue: number;
-    redTunnel: number;
-    blueTunnel: number;
-    video: string;
+    red: number;          // Red team final score
+    blue: number;         // Blue team final score
+    redTunnel: number;    // Player's specified red tunnel choice (1-6)
+    blueTunnel: number;   // Player's specified blue tunnel choice (1-6)
+    video: string;        // Game video URL
 }
 
 const resultSchema = new mongoose.Schema<Result>(

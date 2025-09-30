@@ -51,6 +51,7 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
 
             return {
                 settlementResult,
+                result
             };
         });
     }

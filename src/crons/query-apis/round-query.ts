@@ -49,8 +49,14 @@ export class RoundQuery extends Core.QueryApis.RoundQuery {
             const result = roundData.result ?? this.convertResult(roundData);
             const settlementResult = roundData.settlementResult ?? this.convertSettlementResult(result);
 
+            const scoreInfo = {
+                red: result?.red || 0,
+                blue: result?.blue || 0
+            };
+
             return {
                 settlementResult,
+                scoreInfo: scoreInfo
             };
         });
     }

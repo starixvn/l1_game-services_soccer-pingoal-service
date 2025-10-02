@@ -1,5 +1,5 @@
 import { Core } from "sc-game-base";
-import { generateResult } from "../helpers/result-helper";
+import { generateResult, generateCompleteResult } from "../helpers/result-helper";
 import { Result } from "../models/rounds";
 import { logger } from "sc-common";
 
@@ -46,7 +46,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
      * Private method to settle round with specific parameters (thread-safe)
      */
     private async settleRoundWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Promise<void> {
-        const result = this.generateResultWithId(selections, roundId, playerInfo);
+        const { result, usedAdminSettlement } = this.generateResultWithId(selections, roundId, playerInfo);
         const settlementResult = (this.definition as any).settle(result);
         const { exchangeRates } = this.gameData;
 
@@ -84,6 +84,11 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             // Settle bets - this handles the individual player's settlement
             await (this as any).settleBets(roundResult);
 
+            // Reset admin settlement data after successful settlement
+            if (usedAdminSettlement) {
+                this.resetAdminSettlementData();
+            }
+
             // Reset player data for next round if player info is available
             if (playerInfo?.nickname) {
                 this.resetForNextRound(playerInfo.nickname);
@@ -100,10 +105,55 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
     }
 
     /**
+     * Generate result from admin settlement data
+     */
+    private generateResultFromAdmin(selections: PlayerTunnelSelections, playerNickname: string): Result | null {
+        const shouldUseAdminSettlement = this.gameData?.settlementResultFromAdmin?.result && 
+                                       playerNickname && 
+                                       this.gameData.settlementResultFromAdmin.result?.playerName === playerNickname;
+        
+        this.logService.logError(`shouldUseAdminSettlement: ${shouldUseAdminSettlement}`);
+        this.logService.logError(`settlementResultFromAdmin.result: ${JSON.stringify(this.gameData?.settlementResultFromAdmin?.result)}`);
+        
+        if (shouldUseAdminSettlement) {
+            const adminResult = this.gameData.settlementResultFromAdmin.result;
+            console.log(`Using admin settlement result for player ${playerNickname}: red=${adminResult.red}, blue=${adminResult.blue}`);
+            
+            // Use admin specified scores
+            const redScore = adminResult.red;
+            const blueScore = adminResult.blue;
+            const selectedScoreKey = `R${redScore}B${blueScore}`;
+            
+            // Generate complete result using unified logic
+            return generateCompleteResult(selections, redScore, blueScore, selectedScoreKey);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Reset admin settlement data to prevent reuse
+     */
+    private resetAdminSettlementData(): void {
+        if (this.gameData?.settlementResultFromAdmin) {
+            console.log('Resetting admin settlement data after successful use');
+            delete this.gameData.settlementResultFromAdmin;
+        }
+    }
+
+    /**
      * Private method to generate result with specific parameters (thread-safe)
      */
-    private generateResultWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Result {
-        // Generate result with player's specified tunnel choices and player info for admin settlement
-        return generateResult(selections, roundId, this.logService, this.gameData, playerInfo?.nickname);
+    private generateResultWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): { result: Result, usedAdminSettlement: boolean } {
+        // First try admin settlement if player info is available
+        if (playerInfo?.nickname) {
+            const adminResult = this.generateResultFromAdmin(selections, playerInfo.nickname);
+            if (adminResult) {
+                return { result: adminResult, usedAdminSettlement: true };
+            }
+        }
+        
+        // Fallback to normal result generation
+        return { result: generateResult(selections, roundId), usedAdminSettlement: false };
     }
 }

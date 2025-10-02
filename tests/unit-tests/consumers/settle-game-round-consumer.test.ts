@@ -49,8 +49,15 @@ describe("SettleGameRoundConsumer", () => {
         // Clear all mocks
         jest.clearAllMocks();
         
-        // Create instance
-        settleGameRoundConsumer = new SettleGameRoundConsumer({} as any);
+        // Create instance with logService
+        const mockContainer = {
+            logService: {
+                logError: jest.fn(),
+                logInfo: jest.fn(),
+                logWarn: jest.fn()
+            }
+        };
+        settleGameRoundConsumer = new SettleGameRoundConsumer(mockContainer as any);
         
         // Mock roundsRepository directly on the instance for getNextRoundIdAtomically
         const mockFindOne = {
@@ -104,7 +111,7 @@ describe("SettleGameRoundConsumer", () => {
             await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId, playerInfo);
             
             // Verify generateResult was called with correct parameters
-            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "testPlayer");
+            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId);
             
             // Verify publishToUser was called with correct parameters
             expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenCalledWith("player123", {
@@ -125,8 +132,8 @@ describe("SettleGameRoundConsumer", () => {
             
             await settleGameRoundConsumer.settleRoundWithSelections(selections, roundId);
             
-            // Verify generateResult was called with undefined nickname
-            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
+            // Verify generateResult was called with correct parameters
+            expect(mockGenerateResult).toHaveBeenCalledWith(selections, roundId);
             
             // Verify no publishing when UID is not available (since fallback was removed)
             expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).not.toHaveBeenCalled();
@@ -167,8 +174,8 @@ describe("SettleGameRoundConsumer", () => {
 
             // Verify both settlements used correct parameters
             expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "player1");
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, "player2");
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2);
             
             // Verify both used publishToUser with correct UIDs
             expect((settleGameRoundConsumer as any).roundResultPublisher.publishToUser).toHaveBeenCalledTimes(2);
@@ -208,8 +215,8 @@ describe("SettleGameRoundConsumer", () => {
 
             // Each settlement should use its own parameters
             expect(mockGenerateResult).toHaveBeenCalledTimes(2);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
-            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2, {roundId: 123, exchangeRates: { exId: 1 }, ingame: {}}, undefined);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(1, selections1, roundId1);
+            expect(mockGenerateResult).toHaveBeenNthCalledWith(2, selections2, roundId2);
         });
     });
 

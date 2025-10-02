@@ -164,9 +164,7 @@ const createResult = (playerSelections: PlayerTunnelSelections, redScore: number
     };
 };
 
-/**
- * Generates complete result from scores - common logic for both admin and normal settlement
- */
+//Generates complete result from scores - common logic for both admin and normal settlement
 export const generateCompleteResult = (
     playerSelections: PlayerTunnelSelections, 
     redScore: number, 

@@ -42,9 +42,8 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         await this.settleRoundWithId(selections, roundId, playerInfo);
     }
 
-    /**
-     * Private method to settle round with specific parameters (thread-safe)
-     */
+
+    //Private method to settle round with specific parameters (thread-safe)
     private async settleRoundWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Promise<void> {
         const { result, usedAdminSettlement } = this.generateResultWithId(selections, roundId, playerInfo);
         const settlementResult = (this.definition as any).settle(result);
@@ -104,20 +103,14 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         delete this.gameData.ingame[playerName];
     }
 
-    /**
-     * Generate result from admin settlement data
-     */
+     //Generate result from admin settlement data
     private generateResultFromAdmin(selections: PlayerTunnelSelections, playerNickname: string): Result | null {
         const shouldUseAdminSettlement = this.gameData?.settlementResultFromAdmin?.result && 
                                        playerNickname && 
                                        this.gameData.settlementResultFromAdmin.result?.playerName === playerNickname;
-        
-        this.logService.logError(`shouldUseAdminSettlement: ${shouldUseAdminSettlement}`);
-        this.logService.logError(`settlementResultFromAdmin.result: ${JSON.stringify(this.gameData?.settlementResultFromAdmin?.result)}`);
-        
         if (shouldUseAdminSettlement) {
             const adminResult = this.gameData.settlementResultFromAdmin.result;
-            console.log(`Using admin settlement result for player ${playerNickname}: red=${adminResult.red}, blue=${adminResult.blue}`);
+            this.logService.logError(`Using admin settlement result for player ${playerNickname}: red=${adminResult.red}, blue=${adminResult.blue}`);
             
             // Use admin specified scores
             const redScore = adminResult.red;
@@ -131,19 +124,14 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
         return null;
     }
 
-    /**
-     * Reset admin settlement data to prevent reuse
-     */
+    //Reset admin settlement data to prevent reuse
     private resetAdminSettlementData(): void {
         if (this.gameData?.settlementResultFromAdmin) {
-            console.log('Resetting admin settlement data after successful use');
             delete this.gameData.settlementResultFromAdmin;
         }
     }
 
-    /**
-     * Private method to generate result with specific parameters (thread-safe)
-     */
+    //Private method to generate result with specific parameters (thread-safe)
     private generateResultWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): { result: Result, usedAdminSettlement: boolean } {
         // First try admin settlement if player info is available
         if (playerInfo?.nickname) {
@@ -152,7 +140,6 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
                 return { result: adminResult, usedAdminSettlement: true };
             }
         }
-        
         // Fallback to normal result generation
         return { result: generateResult(selections, roundId), usedAdminSettlement: false };
     }

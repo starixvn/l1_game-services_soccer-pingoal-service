@@ -12,7 +12,6 @@ import { secureWeightedPick, secureRandomRange, securePickOne } from "sc-core-rn
 import crypto from "crypto";
 import { Result } from "../models/rounds";
 import * as constants from "../constants";
-import { logger } from "sc-common";
 
 // Type alias for game outcomes - using BET_CHOICES for consistency
 type GameOutcome = keyof typeof constants.BET_CHOICES;

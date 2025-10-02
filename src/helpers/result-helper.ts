@@ -12,6 +12,7 @@ import { secureWeightedPick, secureRandomRange, securePickOne } from "sc-core-rn
 import crypto from "crypto";
 import { Result } from "../models/rounds";
 import * as constants from "../constants";
+import { logger } from "sc-common";
 
 // Type alias for game outcomes - using BET_CHOICES for consistency
 type GameOutcome = keyof typeof constants.BET_CHOICES;
@@ -21,6 +22,8 @@ interface PlayerTunnelSelections {
     redTunnel: number;   // Player's specified red tunnel choice (1-6)
     blueTunnel: number;  // Player's specified blue tunnel choice (1-6)
 }
+
+
 
 /**
  * Determines game outcome using BET_CHOICE_RATE probabilities
@@ -177,7 +180,7 @@ const generateCompleteResult = (
     return createResult(playerSelections, redScore, blueScore, video);
 };
 
-export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number, gameData?: any, playerNickname?: string): Result => {
+export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number, logService: typeof logger, gameData?: any, playerNickname?: string): Result => {
     const tunnelKey = generateTunnelKey(playerSelections);
     
     let redScore: number;
@@ -188,6 +191,8 @@ export const generateResult = (playerSelections: PlayerTunnelSelections, roundId
     const shouldUseAdminSettlement = gameData?.settlementResultFromAdmin?.result && 
                                    playerNickname && 
                                    gameData.settlementResultFromAdmin.result?.playerName === playerNickname;
+    
+    logService.logError(`shouldUseAdminSettlement: ${shouldUseAdminSettlement}`);
     
     if (shouldUseAdminSettlement) {
         const adminResult = gameData.settlementResultFromAdmin.result;

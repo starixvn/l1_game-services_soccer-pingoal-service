@@ -104,6 +104,6 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
      */
     private generateResultWithId(selections: PlayerTunnelSelections, roundId: number, playerInfo?: PlayerInfo): Result {
         // Generate result with player's specified tunnel choices and player info for admin settlement
-        return generateResult(selections, roundId, this.gameData, playerInfo?.nickname);
+        return generateResult(selections, roundId, this.logService, this.gameData, playerInfo?.nickname);
     }
 }

@@ -11,7 +11,7 @@ export default {
     choicesMapper: BET_CHOICE_ENUM,
     hedgeBetGroups: [], // No hedge bet restrictions - each bet is independent
     provablyFair: false,
-    historyPageSize: 13,
+    historyPageSize: 12,
     defaultBetTracks: {},
     botSettings: {
         ratio: { mainOpts: 80, subOpts: 20 },

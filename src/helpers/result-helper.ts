@@ -22,6 +22,8 @@ interface PlayerTunnelSelections {
     blueTunnel: number;  // Player's specified blue tunnel choice (1-6)
 }
 
+
+
 /**
  * Determines game outcome using BET_CHOICE_RATE probabilities
  */
@@ -162,10 +164,8 @@ const createResult = (playerSelections: PlayerTunnelSelections, redScore: number
     };
 };
 
-/**
- * Generates complete result from scores - common logic for both admin and normal settlement
- */
-const generateCompleteResult = (
+//Generates complete result from scores - common logic for both admin and normal settlement
+export const generateCompleteResult = (
     playerSelections: PlayerTunnelSelections, 
     redScore: number, 
     blueScore: number, 
@@ -177,35 +177,16 @@ const generateCompleteResult = (
     return createResult(playerSelections, redScore, blueScore, video);
 };
 
-export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number, gameData?: any, playerNickname?: string): Result => {
+export const generateResult = (playerSelections: PlayerTunnelSelections, roundId: number): Result => {
     const tunnelKey = generateTunnelKey(playerSelections);
     
-    let redScore: number;
-    let blueScore: number;
-    let selectedScoreKey: string;
+    console.log(`Generating result for round ${roundId} with tunnel combination: ${tunnelKey}`);
     
-    // Check if admin settlement should be used
-    const shouldUseAdminSettlement = gameData?.settlementResultFromAdmin?.result && 
-                                   playerNickname && 
-                                   gameData.settlementResultFromAdmin.result?.playerName === playerNickname;
-    
-    if (shouldUseAdminSettlement) {
-        const adminResult = gameData.settlementResultFromAdmin.result;
-        console.log(`Using admin settlement result for player ${playerNickname}: red=${adminResult.red}, blue=${adminResult.blue}`);
-        
-        // Strategy A: Use admin specified scores
-        redScore = adminResult.red;
-        blueScore = adminResult.blue;
-        selectedScoreKey = `R${redScore}B${blueScore}`;
-    } else {
-        console.log(`Generating result for round ${roundId} with tunnel combination: ${tunnelKey}`);
-        
-        // Strategy B: Use probability-based selection
-        const scoreResult = generateScoreFromOutcome(tunnelKey);
-        redScore = scoreResult.redScore;
-        blueScore = scoreResult.blueScore;
-        selectedScoreKey = scoreResult.selectedScoreKey;
-    }
+    // Use probability-based selection
+    const scoreResult = generateScoreFromOutcome(tunnelKey);
+    const redScore = scoreResult.redScore;
+    const blueScore = scoreResult.blueScore;
+    const selectedScoreKey = scoreResult.selectedScoreKey;
     
     // Generate complete result using unified logic
     return generateCompleteResult(playerSelections, redScore, blueScore, selectedScoreKey);

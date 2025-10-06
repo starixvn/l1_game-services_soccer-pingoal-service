@@ -3,7 +3,7 @@ module.exports = async () => {
         rootDir: "./",
         verbose: true,
         transform: {
-            "^.+\\.ts?$": "ts-jest",
+            "^.+\\.ts?$": ["ts-jest", { tsconfig: "tsconfig.jest.json" }],
             "^.+\\.js?$": "babel-jest",
         },
         transformIgnorePatterns: [

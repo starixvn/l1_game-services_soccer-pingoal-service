@@ -1,8 +1,6 @@
 import type { Socket } from "socket.io";
 
 import { Core } from "sc-game-base";
-import { helpers } from "sc-common";
-
 
 import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
 
@@ -13,8 +11,8 @@ interface BetPayload {
     roundId: number; // Unique round ID for each bet in single-player mode
     mode: string;
     receivedTime: Date;
-    redTunnel: number;    // Player's specified red tunnel choice (1-6)
-    blueTunnel: number;   // Player's specified blue tunnel choice (1-6)
+    redTunnel: number; // Player's specified red tunnel choice (1-6)
+    blueTunnel: number; // Player's specified blue tunnel choice (1-6)
 }
 
 interface Player {
@@ -38,19 +36,8 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
         // Removed roundsRepository initialization as we no longer query database for roundId
     }
 
-    override composeBettingTimeValidationCriteria(roundId:number) {
-        return [
-            {
-                failure: roundId !== this.gameData.roundId,
-                notice: { errorCode: helpers.noticeHelper.placeBetNextRound },
-            },
-            {
-                failure:
-                    this.gameData.remainingTime < this.definition.durations.lockingBet ||
-                    this.gameData.remainingTime >= this.definition.durations.placingBets,
-                notice: { errorCode: helpers.noticeHelper.placeBetNextRound },
-            },
-        ];
+    override composeBettingTimeValidationCriteria() {
+        return [];
     }
 
     /**
@@ -69,20 +56,21 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
             await this.settleGameRoundConsumer.settleRoundWithSelections(
                 {
                     redTunnel: bet.redTunnel,
-                    blueTunnel: bet.blueTunnel
+                    blueTunnel: bet.blueTunnel,
                 },
                 bet.roundId, // Use the roundId generated when player placed their bet
                 {
                     nickname: player.profile.name,
-                    UID: player.UID
+                    UID: player.UID,
                 }
             );
-            console.log(`Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}, player=${player.profile.name}`);
+            console.log(
+                `Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}, player=${player.profile.name}`
+            );
         } catch (error) {
             console.error(`Settlement failed for round ${roundId}:`, error);
             // Note: Settlement failure shouldn't affect the bet processing result
             // Consider implementing a retry mechanism or queuing system for failed settlements
         }
     }
-
 }

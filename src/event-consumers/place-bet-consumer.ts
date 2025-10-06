@@ -1,7 +1,6 @@
 import { Core } from "sc-game-base";
 import { helpers } from "sc-common";
 
-
 /**
  * Task List
  * 1. ✅ Validate for new properties: redTunnel, blueTunnel - COMPLETED
@@ -13,7 +12,7 @@ import { helpers } from "sc-common";
  * 3. ✅ Immediate roundId increment on PlaceBet request - COMPLETED
  *    - roundId is now incremented immediately when PlaceBet request is received
  *    - Uses atomic increment to ensure thread safety for concurrent betting
- * 
+ *
  * Note: Round ID management is now handled immediately upon receiving PlaceBet request.
  * Each bet gets a unique round ID in single-player mode with thread-safe increment.
  */
@@ -24,7 +23,6 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
      * This method is called immediately when PlaceBet request is received
      */
     private incrementRoundIdAtomically(): number {
-        
         // Thread-safe atomic increment
         this.gameData.roundId = (this.gameData.roundId || 0) + 1;
         console.log(`Assigned new round ID: ${this.gameData.roundId} for incoming bet request`);
@@ -41,7 +39,6 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
     }
 
     override validateBetRequestParams(request: any) {
-
         const { redTunnel, blueTunnel } = request;
 
         return [
@@ -62,13 +59,18 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             {
-                failure: blueTunnel !== undefined && blueTunnel !== null && (blueTunnel < 1 || blueTunnel > 6 || !Number.isInteger(blueTunnel)),
+                failure:
+                    blueTunnel !== undefined && blueTunnel !== null && (blueTunnel < 1 || blueTunnel > 6 || !Number.isInteger(blueTunnel)),
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
             // Validation that player's tunnel selections are different
             {
-                failure: redTunnel !== undefined && blueTunnel !== undefined && 
-                        redTunnel !== null && blueTunnel !== null && redTunnel === blueTunnel,
+                failure:
+                    redTunnel !== undefined &&
+                    blueTunnel !== undefined &&
+                    redTunnel !== null &&
+                    blueTunnel !== null &&
+                    redTunnel === blueTunnel,
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
         ];
@@ -82,17 +84,6 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
                 failure: !configs.enabled,
                 notice: this.getNoticeObj(helpers.noticeHelper.invalidBet),
             },
-            {
-                failure: roundId !== this.gameData.roundId,
-                notice: this.getNoticeObj(helpers.noticeHelper.invalidBet, { gameRoundId: roundId }),
-            },
-            {
-                failure:
-                    this.gameData.remainingTime < this.definition.durations.lockingBet ||
-                    this.gameData.remainingTime >= this.definition.durations.placingBets,
-                notice: this.getNoticeObj(helpers.noticeHelper.placeBetNextRound),
-            },
         ];
     }
-
 }

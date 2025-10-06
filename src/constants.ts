@@ -2,11 +2,7 @@
 import type { VideoConfigurationMap } from "./types/game-config";
 
 // Import TypeScript configurations
-import { R1B2_CONFIG } from "./gamedata/r1b2";
-import { R1B3_CONFIG } from "./gamedata/r1b3";
-import { R1B4_CONFIG } from "./gamedata/r1b4";
-import { R1B5_CONFIG } from "./gamedata/r1b5";
-import { R1B6_CONFIG } from "./gamedata/r1b6";
+import videos from "./gamedata/summary.json" assert { type: "json" };
 
 export const BET_CHOICES = {
     blue: "blue",
@@ -42,11 +38,4 @@ export const BET_CHOICE_RATE = {
  * // Access R1B2 configuration
  * const r1b2Videos = DEFAULT_NUMBER_OF_VIDEOS["R1B2"]["R10B10"]; // returns 1
  */
-//NOSONAR
-export const DEFAULT_NUMBER_OF_VIDEOS: VideoConfigurationMap = {
-    "R1B2": R1B2_CONFIG,
-    "R1B3": R1B3_CONFIG,
-    "R1B4": R1B4_CONFIG,
-    "R1B5": R1B5_CONFIG,
-    "R1B6": R1B6_CONFIG
-} as const;
+export const DEFAULT_NUMBER_OF_VIDEOS: VideoConfigurationMap = videos as Record<string, Record<string, number>>;

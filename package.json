@@ -14,6 +14,7 @@
         "start": "node --experimental-loader=extensionless ./build/app.js",
         "build": "tsc -p tsconfig.build.json",
         "test": "jest --testPathPatterns=tests/unit-tests/ ",
+        "test-rtp": "jest --testPathPatterns=tests/rtp-test/",
         "test-coverage": "jest --collect-coverage --testPathPatterns=tests/unit-tests/",
         "integration-test": "",
         "integration-test:skip": "npm run build && jest --config ./jest.integration-test.config.cjs --testPathPatterns=tests/integration-tests/ --detectOpenHandles --forceExit",

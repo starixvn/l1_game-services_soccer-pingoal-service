@@ -48,8 +48,6 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
     override async handleSuccessBet(player: Player, balance: unknown, roundId: number, bet: BetPayload) {
         await super.handleSuccessBet(player, balance, roundId, bet);
 
-        console.log(`Successful bet by ${player.profile.name} on round ${roundId} (assigned at request time)`);
-
         // For single-player style, each bet gets its own round and should be settled immediately
         try {
             // Pass player's specified tunnel choices, roundId from bet payload, and player info to settlement method (thread-safe)
@@ -63,9 +61,6 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
                     nickname: player.profile.name,
                     UID: player.UID,
                 }
-            );
-            console.log(
-                `Settlement completed for round ${roundId} with player tunnel selections: red=${bet.redTunnel}, blue=${bet.blueTunnel}, player=${player.profile.name}`
             );
         } catch (error) {
             console.error(`Settlement failed for round ${roundId}:`, error);

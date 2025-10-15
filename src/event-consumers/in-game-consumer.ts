@@ -28,9 +28,7 @@ interface Player {
  */
 
 export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsumer {
-
     async consume(realPlayer: Player) {
-        console.log("consume", realPlayer);
         const { gameConfigs } = this.gameData;
         const disabled = !gameConfigs || !gameConfigs.enabled || this.gameData.delayStartTime > 0;
         realPlayer.socketClient.emit(this.definition.name, { um: disabled, um_message: this.gameData.umMessages });
@@ -48,10 +46,7 @@ export default class InGameConsumer extends Core.BaseEventConsumers.InGameConsum
         const rate = exchangeRates.code[session.currencyCode] * session.multiplier;
         const settings = this.gameData.currencyGroupGames.find((x) => x.groupId.toString() === session.currencyGroupId);
         const gameConfigs = { ...settings, odds };
-        const roundHistory = await this.roundQuery.getList(
-            this.definition.numberOfRoundHistory,
-            realPlayer.session.playerId
-        );
+        const roundHistory = await this.roundQuery.getList(this.definition.numberOfRoundHistory, realPlayer.session.playerId);
         const liveStreamServer = appConfigs.liveStreamServer;
 
         return {

@@ -25,7 +25,7 @@ export default class PlaceBetConsumer extends Core.BaseEventConsumers.PlaceBetCo
     private incrementRoundIdAtomically(): number {
         // Thread-safe atomic increment
         this.gameData.roundId = (this.gameData.roundId || 0) + 1;
-        console.log(`Assigned new round ID: ${this.gameData.roundId} for incoming bet request`);
+
         return this.gameData.roundId;
     }
 

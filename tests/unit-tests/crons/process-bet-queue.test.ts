@@ -14,9 +14,9 @@ jest.mock("sc-game-base", () => ({
                 async handleSuccessBet(...args: any[]): Promise<void> {
                     // Mock implementation
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 }));
 
 // Mock console methods to avoid noise in tests
@@ -24,7 +24,7 @@ global.console = {
     ...console,
     log: jest.fn(),
     error: jest.fn(),
-    warn: jest.fn()
+    warn: jest.fn(),
 };
 
 interface BetPayload {
@@ -60,32 +60,29 @@ describe("ProcessBetQueue", () => {
         mockRoundsRepository = {
             findOne: jest.fn().mockReturnValue({
                 lean: jest.fn().mockReturnValue({
-                    exec: jest.fn()
+                    exec: jest.fn(),
                 }),
-                sort: jest.fn()
-            })
+                sort: jest.fn(),
+            }),
         };
 
         // Mock SettleGameRoundConsumer
         mockSettleGameRoundConsumer = {
             setPlayerTunnelSelections: jest.fn(),
             settleRound: jest.fn(),
-            settleRoundWithSelections: jest.fn()
+            settleRoundWithSelections: jest.fn(),
         } as Partial<SettleGameRoundConsumer>;
 
         mockDependencies = {
             settleGameRoundConsumer: mockSettleGameRoundConsumer,
-            roundsRepository: mockRoundsRepository
+            roundsRepository: mockRoundsRepository,
         };
 
         processBetQueue = new ProcessBetQueue(mockDependencies);
-        
+
         // Reset console mocks
         jest.clearAllMocks();
     });
-
-
-
 
     describe("handleSuccessBet", () => {
         let mockPlayer: Player;
@@ -99,10 +96,10 @@ describe("ProcessBetQueue", () => {
                 profile: {
                     name: "TestPlayer",
                     minBet: 10,
-                    maxBet: 1000
+                    maxBet: 1000,
                 },
                 socketClient: {} as Socket,
-                session: {}
+                session: {},
             };
 
             mockBet = {
@@ -113,7 +110,7 @@ describe("ProcessBetQueue", () => {
                 mode: "single",
                 receivedTime: new Date(),
                 redTunnel: 1,
-                blueTunnel: 3
+                blueTunnel: 3,
             };
 
             mockBalance = { balance: 5000 };
@@ -122,7 +119,7 @@ describe("ProcessBetQueue", () => {
             // Mock parent class method
             const superHandleSuccessBet = jest.fn();
             Object.setPrototypeOf(ProcessBetQueue.prototype, {
-                handleSuccessBet: superHandleSuccessBet
+                handleSuccessBet: superHandleSuccessBet,
             });
         });
 
@@ -131,23 +128,24 @@ describe("ProcessBetQueue", () => {
             await processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet);
 
             // Verify parent method was called
-            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet)
-                .toHaveBeenCalledWith(mockPlayer, mockBalance, roundId, mockBet);
+            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet).toHaveBeenCalledWith(
+                mockPlayer,
+                mockBalance,
+                roundId,
+                mockBet
+            );
 
             // Verify new thread-safe settlement method was called with tunnel selections
-            expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
-                .toHaveBeenCalledWith({
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith(
+                {
                     redTunnel: mockBet.redTunnel,
-                    blueTunnel: mockBet.blueTunnel
-                }, mockBet.roundId, {
+                    blueTunnel: mockBet.blueTunnel,
+                },
+                mockBet.roundId,
+                {
                     nickname: "TestPlayer",
-                    UID: "player123"
-                });
-
-            // Verify success logging
-            expect(console.log).toHaveBeenCalledWith(`Successful bet by ${mockPlayer.profile.name} on round ${roundId} (assigned at request time)`);
-            expect(console.log).toHaveBeenCalledWith(
-                `Settlement completed for round ${roundId} with player tunnel selections: red=${mockBet.redTunnel}, blue=${mockBet.blueTunnel}, player=${mockPlayer.profile.name}`
+                    UID: "player123",
+                }
             );
         });
 
@@ -156,28 +154,31 @@ describe("ProcessBetQueue", () => {
             mockSettleGameRoundConsumer.settleRoundWithSelections.mockRejectedValue(new Error("Settlement failed"));
 
             // Execute - should not throw
-            await expect(processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet))
-                .resolves.toBeUndefined();
+            await expect(processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet)).resolves.toBeUndefined();
 
             // Verify parent method was still called
-            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet)
-                .toHaveBeenCalledWith(mockPlayer, mockBalance, roundId, mockBet);
+            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet).toHaveBeenCalledWith(
+                mockPlayer,
+                mockBalance,
+                roundId,
+                mockBet
+            );
 
             // Verify new settlement method was called with tunnel selections
-            expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
-                .toHaveBeenCalledWith({
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith(
+                {
                     redTunnel: mockBet.redTunnel,
-                    blueTunnel: mockBet.blueTunnel
-                }, mockBet.roundId, {
+                    blueTunnel: mockBet.blueTunnel,
+                },
+                mockBet.roundId,
+                {
                     nickname: "TestPlayer",
-                    UID: "player123"
-                });
+                    UID: "player123",
+                }
+            );
 
             // Verify error logging
-            expect(console.error).toHaveBeenCalledWith(
-                `Settlement failed for round ${roundId}:`,
-                expect.any(Error)
-            );
+            expect(console.error).toHaveBeenCalledWith(`Settlement failed for round ${roundId}:`, expect.any(Error));
         });
 
         it("should handle settlement method errors gracefully", async () => {
@@ -187,30 +188,30 @@ describe("ProcessBetQueue", () => {
             });
 
             // Execute - should not throw
-            await expect(processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet))
-                .resolves.toBeUndefined();
+            await expect(processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, mockBet)).resolves.toBeUndefined();
 
             // Verify parent method was still called
-            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet)
-                .toHaveBeenCalledWith(mockPlayer, mockBalance, roundId, mockBet);
+            expect(Object.getPrototypeOf(ProcessBetQueue.prototype).handleSuccessBet).toHaveBeenCalledWith(
+                mockPlayer,
+                mockBalance,
+                roundId,
+                mockBet
+            );
 
             // Verify error was logged
-            expect(console.error).toHaveBeenCalledWith(
-                `Settlement failed for round ${roundId}:`,
-                expect.any(Error)
-            );
+            expect(console.error).toHaveBeenCalledWith(`Settlement failed for round ${roundId}:`, expect.any(Error));
         });
 
         it("should work with different tunnel combinations", async () => {
             const testCases = [
                 { redTunnel: 1, blueTunnel: 6 },
                 { redTunnel: 3, blueTunnel: 2 },
-                { redTunnel: 6, blueTunnel: 1 }
+                { redTunnel: 6, blueTunnel: 1 },
             ];
 
             for (const tunnelCase of testCases) {
                 const testBet = { ...mockBet, ...tunnelCase };
-                
+
                 // Reset mocks
                 jest.clearAllMocks();
 
@@ -218,18 +219,20 @@ describe("ProcessBetQueue", () => {
                 await processBetQueue.handleSuccessBet(mockPlayer, mockBalance, roundId, testBet);
 
                 // Verify new settlement method was called with correct tunnel selections
-                expect(mockSettleGameRoundConsumer.settleRoundWithSelections)
-                    .toHaveBeenCalledWith({
+                expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith(
+                    {
                         redTunnel: tunnelCase.redTunnel,
-                        blueTunnel: tunnelCase.blueTunnel
-                    }, roundId, {
+                        blueTunnel: tunnelCase.blueTunnel,
+                    },
+                    roundId,
+                    {
                         nickname: "TestPlayer",
-                        UID: "player123"
-                    });
+                        UID: "player123",
+                    }
+                );
             }
         });
     });
-
 
     describe("integration scenarios", () => {
         it("should handle complete bet processing workflow", async () => {
@@ -237,15 +240,15 @@ describe("ProcessBetQueue", () => {
             const mockLastRound = { id: 150 };
             mockRoundsRepository.findOne.mockReturnValue({
                 lean: () => ({
-                    exec: async () => mockLastRound
-                })
+                    exec: async () => mockLastRound,
+                }),
             });
 
             const mockPlayer: Player = {
                 UID: "integration-player",
                 profile: { name: "IntegrationTest", minBet: 10, maxBet: 1000 },
                 socketClient: {} as Socket,
-                session: {}
+                session: {},
             };
 
             const mockBet: BetPayload = {
@@ -256,7 +259,7 @@ describe("ProcessBetQueue", () => {
                 mode: "single",
                 receivedTime: new Date(),
                 redTunnel: 2,
-                blueTunnel: 5
+                blueTunnel: 5,
             };
 
             // Execute: Process bet without separate round generation
@@ -264,14 +267,17 @@ describe("ProcessBetQueue", () => {
             await processBetQueue.handleSuccessBet(mockPlayer, { balance: 10000 }, 151, mockBet);
 
             // Verify the complete workflow uses the new thread-safe method
-            expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith({
-                redTunnel: 2,
-                blueTunnel: 5
-            }, 151, {
-                nickname: "IntegrationTest",
-                UID: "integration-player"
-            });
+            expect(mockSettleGameRoundConsumer.settleRoundWithSelections).toHaveBeenCalledWith(
+                {
+                    redTunnel: 2,
+                    blueTunnel: 5,
+                },
+                151,
+                {
+                    nickname: "IntegrationTest",
+                    UID: "integration-player",
+                }
+            );
         });
-
     });
 });

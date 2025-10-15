@@ -2,8 +2,8 @@ const appConfigs = {
     hostingPort: 5000,
     apiSettings: {
         enabledApi: true,
-        apiUrl: "https://l1-proxy1.lumigame.com/game-api",
-        authUrl: "https://l1-auth1.lumigame.com",
+        apiUrl: "https://l1-proxy3.lumigame.com/game-api",
+        authUrl: "https://l1-auth3.lumigame.com",
         client: {
             id: "game-server",
             secret: "gameserver@20luminet&",
@@ -24,21 +24,20 @@ const appConfigs = {
     },
     enabledLogs: true,
     database: {
-        url: "mongodb://lmn_backend:LmnBackend@10.10.50.12:39101,10.10.50.13:39101,10.10.50.14:39101/?replicaSet=L1pLocal&appName=soccerpinggoal",
+        url: "mongodb://lmn_backend:LmnBackend@10.10.50.12:39103,10.10.50.13:39103,10.10.50.14:39103/?replicaSet=L1pppLocal&appName=soccerpingoal",
         options: {
             dbName: "minigame",
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            auto_reconnect: true,
         },
     },
     sentry: {
-        sentryUrl: "https://3711f3082699411a8716a3221ca1fd9e@sentry.lumigame.com/89",
+        sentryUrl: "https://13f39b8359404ed5aec23655e64ccf78@sentry.lumigame.com/2",
         logIdentifier: "Soccer-PinGoal-Dev",
         env: "DEV",
     },
     authenticateSettings: {
-        url: "https://l1-auth1.lumigame.com",
+        url: "https://l1-auth3.lumigame.com",
         id: "game-services",
         secret: "gameservices@20luminet&",
         requestTimeout: 10000,
@@ -46,7 +45,7 @@ const appConfigs = {
         audiences: ["api", "admin-api"],
     },
     userServiceSettings: {
-        url: "https://l1-proxy1.lumigame.com/user",
+        url: "https://l1-proxy3.lumigame.com/user",
     },
     adminSecretKey: "asWDEerfOIdgsdqRTFabvmgh",
     metrics: {
@@ -55,7 +54,7 @@ const appConfigs = {
     },
     enableMsgpackParser: false,
     gameManagementApiSettings: {
-        BASE: "https://l1-proxy1.lumigame.com/game-management-service",
+        BASE: "https://l1-proxy3.lumigame.com/game-management-service",
     },
     disableCors: true,
     otel: {
@@ -64,10 +63,11 @@ const appConfigs = {
         endpoint: "http://10.10.50.69:4318/v1/traces",
     },
     gameResultSettings: {
-        baseUrl: "https://l1-result1.lumigame.com",
+        baseUrl: "https://l1-result3.lumigame.com",
         id: "Game Service",
         key: "58148de3-b895-4f6b-82de-a35eed1b4b28",
     },
+    liveStreamServer: "https://d1aof1lwumql9k.cloudfront.net/soccerpingoal/",
 };
 
 export default appConfigs;

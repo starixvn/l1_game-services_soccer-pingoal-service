@@ -29,7 +29,6 @@ export default {
             dbName: "soccer-pingoal-test-db",
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            auto_reconnect: true,
         },
     },
     sentry: {

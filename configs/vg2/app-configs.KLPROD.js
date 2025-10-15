@@ -29,7 +29,6 @@ export default {
             dbName: "minigame",
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            auto_reconnect: true,
         },
     },
     sentry: {
@@ -67,4 +66,5 @@ export default {
         id: "Game Service",
         key: "6a578c70-5ff3-4f26-a403-072a672f18df",
     },
+    liveStreamServer: "https://d10r8t0fxmjzn1.cloudfront.net/soccerpingoal/",
 };

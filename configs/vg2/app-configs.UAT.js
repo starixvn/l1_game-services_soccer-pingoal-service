@@ -24,12 +24,11 @@ export default {
     },
     enabledLogs: true,
     database: {
-        url: "mongodb://lmn_backend:LmnBackend%4022027@10.99.99.53:39220,10.99.99.54:39220,10.99.99.188:39220,10.99.99.187:39220/?replicaSet=SabaL2UAT&appName=soccerpingoal",
+        url: "mongodb://lmn_backend:LmnBackend%4022027@10.146.34.28:39220/?replicaSet=SabaL2UAT&appName=soccerpingoal",
         options: {
             dbName: "minigame",
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            auto_reconnect: true,
         },
     },
     sentry: {
@@ -67,4 +66,5 @@ export default {
         id: "Game Service",
         key: "bb8d0de2-b07b-428a-94f7-40e9e34ac23c",
     },
+    liveStreamServer: "https://d10r8t0fxmjzn1.cloudfront.net/soccerpingoal/",
 };

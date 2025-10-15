@@ -1,16 +1,20 @@
+import { Core, Table } from "sc-game-base";
 import appConfigs from "./app-configs";
-import gameSettings from "./game-settings";
-import { Core } from "sc-game-base";
-import GameDefinition from "./game-definition";
 import ContainerRegistry from "./container-registry";
-import { Table } from "sc-game-base";
+import GameDefinition from "./game-definition";
+import gameSettings from "./game-settings";
+import { resultHelper } from "./helpers";
+import { validateAllConfigurations } from "./validators/config-validator";
 
 const run = async () => {
+    // Validate all configurations before starting the application
+    validateAllConfigurations();
+    
     const definition = new GameDefinition(
         gameSettings as any,
-        () => {},
-        () => {},
-        () => {}
+        resultHelper.generateResult,
+        resultHelper.getSettlementResult,
+        resultHelper.generateRawResultForHash
     );
 
     const gameData = new Table.TableGameData(gameSettings.durations.wholeRound);

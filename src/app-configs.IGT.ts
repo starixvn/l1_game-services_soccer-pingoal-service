@@ -20,7 +20,6 @@ export default Object.assign(appConfigs, {
             dbName: "soccer-pingoal-test-db",
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            auto_reconnect: true,
         },
     },
     disableCors: true,

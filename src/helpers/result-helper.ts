@@ -23,11 +23,17 @@ interface PlayerTunnelSelections {
 }
 
 /**
- * Determines game outcome using BET_CHOICE_RATE probabilities
+ * Determines game outcome using tunnel-specific BET_CHOICE_RATE probabilities (V3)
+ * @param tunnelKey - Tunnel combination (e.g., "R1B2")
+ * @returns Selected game outcome based on tunnel-specific probabilities
  */
-const selectGameOutcome = (): GameOutcome => {
-    const outcomes: GameOutcome[] = Object.values(constants.BET_CHOICES) as GameOutcome[];
-    const weights = outcomes.map((outcome) => constants.BET_CHOICE_RATE[outcome]);
+const selectGameOutcome = (tunnelKey: string): GameOutcome => {
+    const outcomes: GameOutcome[] = ['red', 'blue', 'draw'];
+    
+    // Get tunnel-specific rates using flat structure
+    const weights = outcomes.map((outcome) => 
+        constants.getBetChoiceRate(tunnelKey, outcome as constants.Outcome)
+    );
 
     return secureWeightedPick(outcomes, weights) as GameOutcome;
 };
@@ -67,7 +73,7 @@ const filterScoresByOutcome = (availableScores: Record<string, number>, targetOu
 };
 
 /**
- * Generates game score based on two-stage selection process
+ * Generates game score based on two-stage selection process (V3 - Tunnel-Specific)
  */
 const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueScore: number; selectedScoreKey: string } => {
     // Get available scores for this tunnel combination
@@ -77,8 +83,8 @@ const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueSc
         throw new Error(`No video configuration found for tunnel: ${tunnelKey}`);
     }
 
-    // Stage 1: Select game outcome using BET_CHOICE_RATE
-    const selectedOutcome = selectGameOutcome();
+    // Stage 1: Select game outcome using tunnel-specific BET_CHOICE_RATE
+    const selectedOutcome = selectGameOutcome(tunnelKey);
 
     // Stage 2: Filter scores by selected outcome
     const validScores = filterScoresByOutcome(availableScores, selectedOutcome);

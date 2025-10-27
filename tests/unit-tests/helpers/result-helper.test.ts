@@ -73,9 +73,9 @@ describe("result-helper", () => {
 
             generateResult(mockPlayerSelections, 789);
 
-            // Verify the random functions were called
+            // Verify the random functions were called (V3: outcomes order is red, blue, draw)
             expect(secureWeightedPick).toHaveBeenCalledWith(
-                ["blue", "red", "draw"],
+                ["red", "blue", "draw"],
                 expect.arrayContaining([expect.any(Number), expect.any(Number), expect.any(Number)])
             );
             expect(securePickOne).toHaveBeenCalled();

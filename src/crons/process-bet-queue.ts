@@ -3,6 +3,7 @@ import type { Socket } from "socket.io";
 import { Core } from "sc-game-base";
 
 import SettleGameRoundConsumer from "../event-consumers/settle-game-round-consumer";
+import { extractTunnelOdds } from "../helpers";
 
 interface BetPayload {
     amount: number;
@@ -13,6 +14,7 @@ interface BetPayload {
     receivedTime: Date;
     redTunnel: number; // Player's specified red tunnel choice (1-6)
     blueTunnel: number; // Player's specified blue tunnel choice (1-6)
+    clientSeed?: string; // Optional client seed for provably fair
 }
 
 interface Player {
@@ -38,6 +40,54 @@ export default class ProcessBetQueue extends Core.Crons.ProcessBetQueue {
 
     override composeBettingTimeValidationCriteria() {
         return [];
+    }
+
+    /**
+     * Override upsertBet to extract and store only tunnel-specific odds (V3)
+     * Instead of storing all 90 odds values, we extract only the 3 relevant odds
+     * for the player's chosen tunnel combination (red, blue, draw)
+     */
+    override async upsertBet(player: any, roundId: number, bet: BetPayload, rate: number): Promise<void> {
+        const configs = this.gameData.gameConfigs;
+        
+        // Extract tunnel-specific odds from V3 flat structure
+        const tunnelSpecificOdds = extractTunnelOdds(
+            configs.odds,
+            bet.redTunnel,
+            bet.blueTunnel
+        );
+
+        const newBet: any = {
+            uid: player.UID,
+            name: player.profile.name,
+            time: new Date(),
+            odds: tunnelSpecificOdds, // Store only the 3 odds for this tunnel combination
+            freeBet: bet.freeBet,
+            roundId,
+            clientSeed: bet.clientSeed,
+            redTunnel: bet.redTunnel, // Store tunnel selections for reference
+            blueTunnel: bet.blueTunnel,
+        };
+
+        const existingBetFilter = { uid: player.UID, roundId, freeBet: bet.freeBet };
+        const existingBetIncrement = {
+            [bet.betChoice]: bet.amount,
+            totalAmount: bet.amount,
+        };
+
+        if (player.session) {
+            newBet.siteId = player.session.siteId;
+            newBet.currency = player.session.currencyName;
+            newBet.rate = rate;
+            newBet.operatorId = player.session.operatorId;
+            newBet.playerId = player.session.playerId;
+        }
+
+        await this.betsRepository.updateOne(
+            existingBetFilter,
+            { $inc: existingBetIncrement, $setOnInsert: newBet },
+            { upsert: true, setDefaultsOnInsert: true }
+        );
     }
 
     /**

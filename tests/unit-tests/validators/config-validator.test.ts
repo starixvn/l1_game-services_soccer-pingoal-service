@@ -44,7 +44,6 @@ jest.mock("../../../src/constants", () => {
 });
 
 import {
-    validateBetChoiceRateProbabilities,
     validateAllConfigurations,
     validateTunnelRateKeys,
     validateTunnelSpecificProbabilities,
@@ -156,27 +155,6 @@ describe("config-validator (V3)", () => {
         });
     });
 
-    describe("validateBetChoiceRateProbabilities (Legacy)", () => {
-        it("should pass validation for valid R1B2 tunnel", () => {
-            mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
-            expect(() => validateBetChoiceRateProbabilities()).not.toThrow();
-        });
-
-        it("should throw error when R1B2 probabilities don't sum to 1.0", () => {
-            mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
-            mockBetChoiceRate['R1B2_draw'] = 0.05; // Now sums to 0.95
-            
-            expect(() => validateBetChoiceRateProbabilities()).toThrow(
-                /BET_CHOICE_RATE probabilities must sum to 1\.0 for each tunnel/
-            );
-        });
-
-        it("should handle edge case with extreme distribution", () => {
-            mockBetChoiceRate = generateValidBetChoiceRate(0.90, 0.05, 0.05);
-            expect(() => validateBetChoiceRateProbabilities()).not.toThrow();
-        });
-    });
-
     describe("validateAllConfigurations", () => {
         it("should pass when all V3 configurations are valid", () => {
             mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
@@ -230,7 +208,6 @@ describe("config-validator (V3)", () => {
             // This tests that the actual V3 constants in the codebase are valid
             expect(() => actualValidator.validateTunnelRateKeys()).not.toThrow();
             expect(() => actualValidator.validateTunnelSpecificProbabilities()).not.toThrow();
-            expect(() => actualValidator.validateBetChoiceRateProbabilities()).not.toThrow();
             expect(() => actualValidator.validateAllConfigurations()).not.toThrow();
         });
 

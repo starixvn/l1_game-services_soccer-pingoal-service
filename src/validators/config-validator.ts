@@ -80,31 +80,6 @@ export const validateTunnelSpecificProbabilities = (): void => {
 };
 
 /**
- * Legacy validation function - kept for backwards compatibility
- * Now validates V3 structure by checking first tunnel's probabilities
- * 
- * @deprecated Use validateTunnelSpecificProbabilities instead
- * @throws {Error} If probabilities don't sum to 1.0 (within tolerance)
- */
-export const validateBetChoiceRateProbabilities = (): void => {
-    // For V3, validate the first tunnel as a sample
-    const tunnelKey = 'R1B2';
-    const red = getBetChoiceRate(tunnelKey, 'red');
-    const blue = getBetChoiceRate(tunnelKey, 'blue');
-    const draw = getBetChoiceRate(tunnelKey, 'draw');
-    const totalBetChoiceRate = red + blue + draw;
-    const tolerance = 0.001;
-    
-    if (Math.abs(totalBetChoiceRate - 1.0) > tolerance) {
-        throw new Error(
-            `BET_CHOICE_RATE probabilities must sum to 1.0 for each tunnel. ` +
-            `Sample (${tunnelKey}): ${totalBetChoiceRate}. ` +
-            `Rates: red=${red}, blue=${blue}, draw=${draw}`
-        );
-    }
-};
-
-/**
  * Validates all application configurations (V3)
  * 
  * This function should be called during application startup to ensure
@@ -117,9 +92,6 @@ export const validateAllConfigurations = (): void => {
         // V3 validations
         validateTunnelRateKeys();
         validateTunnelSpecificProbabilities();
-        
-        // Legacy validation (for backwards compatibility)
-        validateBetChoiceRateProbabilities();
         
         // Future configuration validations can be added here, for example:
         // validateVideoConfigurations();

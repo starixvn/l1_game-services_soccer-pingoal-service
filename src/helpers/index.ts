@@ -4,7 +4,7 @@ export { resultHelper };
 
 /**
  * Extract tunnel-specific odds from V3 flat odds structure
- * @param flatOdds - V3 flat odds object with keys like "R1B2_red", "R1B2_blue", "R1B2_draw"
+ * @param flatOdds - V3 flat odds object with keys like "r1b2_red", "r1b2_blue", "r1b2_draw"
  * @param redTunnel - Red tunnel selection (1-6)
  * @param blueTunnel - Blue tunnel selection (1-6)
  * @returns Object with red, blue, draw odds for the specified tunnel combination
@@ -14,7 +14,7 @@ export const extractTunnelOdds = (
     redTunnel: number,
     blueTunnel: number
 ): { red: number; blue: number; draw: number } => {
-    const tunnelKey = `R${redTunnel}B${blueTunnel}`;
+    const tunnelKey = `r${redTunnel}b${blueTunnel}`;
     
     const redOdds = flatOdds[`${tunnelKey}_red`];
     const blueOdds = flatOdds[`${tunnelKey}_blue`];

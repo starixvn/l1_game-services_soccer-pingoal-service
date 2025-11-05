@@ -42,7 +42,7 @@ const selectGameOutcome = (tunnelKey: string): GameOutcome => {
  * Classifies score key by outcome type
  */
 export const classifyScore = (scoreKey: string): GameOutcome | null => {
-    const match = scoreKey.match(/^R(\d+)B(\d+)$/);
+    const match = scoreKey.match(/^r(\d+)b(\d+)$/i);
     if (!match) {
         return null;
     }
@@ -96,10 +96,10 @@ const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueSc
     // Stage 3: Randomly select one valid score
     const selectedScoreKey = securePickOne(validScores);
 
-    // Parse the selected score key (e.g., "R13B12" -> red=13, blue=12)
-    const scoreMatch = selectedScoreKey.match(/^R(\d+)B(\d+)$/);
+    // Parse the selected score key (e.g., "r13b12" -> red=13, blue=12)
+    const scoreMatch = selectedScoreKey.match(/^r(\d+)b(\d+)$/i);
     if (!scoreMatch) {
-        throw new Error(`Invalid score key format: ${selectedScoreKey}. Expected format: R{number}B{number}`);
+        throw new Error(`Invalid score key format: ${selectedScoreKey}. Expected format: r{number}b{number}`);
     }
 
     const redScore = parseInt(scoreMatch[1], 10);
@@ -132,14 +132,14 @@ const generateVideoIndex = (tunnelKey: string, selectedScoreKey: string): number
  * Generates tunnel key from player selections
  */
 const generateTunnelKey = (playerSelections: PlayerTunnelSelections): string => {
-    return `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}`;
+    return `r${playerSelections.redTunnel}b${playerSelections.blueTunnel}`;
 };
 
 /**
  * Generates video name hash from tunnel and score information
  */
 const generateVideoName = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, videoIndex: number): string => {
-    const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;
+    const rawVideoName = `r${playerSelections.redTunnel}b${playerSelections.blueTunnel}-r${redScore}b${blueScore}-${videoIndex}`;
     const videoName = crypto.createHash("sha256").update(`${rawVideoName}`).digest("hex");
     return `${videoName}.m3u8`;
 };

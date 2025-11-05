@@ -8,15 +8,15 @@
 import { BET_CHOICE_RATE, getBetChoiceRate } from '../constants';
 
 /**
- * List of all valid tunnel combinations
+ * List of all valid tunnel combinations (lowercase for Admin camelCase compatibility)
  */
 export const VALID_TUNNELS = [
-    'R1B2', 'R1B3', 'R1B4', 'R1B5', 'R1B6',
-    'R2B1', 'R2B3', 'R2B4', 'R2B5', 'R2B6',
-    'R3B1', 'R3B2', 'R3B4', 'R3B5', 'R3B6',
-    'R4B1', 'R4B2', 'R4B3', 'R4B5', 'R4B6',
-    'R5B1', 'R5B2', 'R5B3', 'R5B4', 'R5B6',
-    'R6B1', 'R6B2', 'R6B3', 'R6B4', 'R6B5',
+    'r1b2', 'r1b3', 'r1b4', 'r1b5', 'r1b6',
+    'r2b1', 'r2b3', 'r2b4', 'r2b5', 'r2b6',
+    'r3b1', 'r3b2', 'r3b4', 'r3b5', 'r3b6',
+    'r4b1', 'r4b2', 'r4b3', 'r4b5', 'r4b6',
+    'r5b1', 'r5b2', 'r5b3', 'r5b4', 'r5b6',
+    'r6b1', 'r6b2', 'r6b3', 'r6b4', 'r6b5',
 ] as const;
 
 /**

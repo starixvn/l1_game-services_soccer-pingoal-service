@@ -1,15 +1,15 @@
 // Global variable to control mock behavior for V3
 let mockBetChoiceRate: Record<string, number> = {};
 
-// Helper to generate valid V3 BET_CHOICE_RATE structure
+// Helper to generate valid V3 BET_CHOICE_RATE structure (lowercase for Admin compatibility)
 const generateValidBetChoiceRate = (baseRed = 0.45, baseBlue = 0.45, baseDraw = 0.10): Record<string, number> => {
     const tunnels = [
-        'R1B2', 'R1B3', 'R1B4', 'R1B5', 'R1B6',
-        'R2B1', 'R2B3', 'R2B4', 'R2B5', 'R2B6',
-        'R3B1', 'R3B2', 'R3B4', 'R3B5', 'R3B6',
-        'R4B1', 'R4B2', 'R4B3', 'R4B5', 'R4B6',
-        'R5B1', 'R5B2', 'R5B3', 'R5B4', 'R5B6',
-        'R6B1', 'R6B2', 'R6B3', 'R6B4', 'R6B5',
+        'r1b2', 'r1b3', 'r1b4', 'r1b5', 'r1b6',
+        'r2b1', 'r2b3', 'r2b4', 'r2b5', 'r2b6',
+        'r3b1', 'r3b2', 'r3b4', 'r3b5', 'r3b6',
+        'r4b1', 'r4b2', 'r4b3', 'r4b5', 'r4b6',
+        'r5b1', 'r5b2', 'r5b3', 'r5b4', 'r5b6',
+        'r6b1', 'r6b2', 'r6b3', 'r6b4', 'r6b5',
     ];
     
     const rates: Record<string, number> = {};
@@ -65,9 +65,9 @@ describe("config-validator (V3)", () => {
         it("should throw error when keys are missing", () => {
             // Only add a few keys instead of all 90
             mockBetChoiceRate = {
-                R1B2_red: 0.45,
-                R1B2_blue: 0.45,
-                R1B2_draw: 0.10,
+                r1b2_red: 0.45,
+                r1b2_blue: 0.45,
+                r1b2_draw: 0.10,
             };
 
             expect(() => validateTunnelRateKeys()).toThrow(/Missing key:/);
@@ -81,9 +81,9 @@ describe("config-validator (V3)", () => {
                 validateTunnelRateKeys();
             } catch (error: any) {
                 // Should list multiple missing keys
-                expect(error.message).toContain('R1B2_red');
-                expect(error.message).toContain('R1B2_blue');
-                expect(error.message).toContain('R1B2_draw');
+                expect(error.message).toContain('r1b2_red');
+                expect(error.message).toContain('r1b2_blue');
+                expect(error.message).toContain('r1b2_draw');
             }
         });
 
@@ -106,16 +106,16 @@ describe("config-validator (V3)", () => {
         it("should throw error when one tunnel's probabilities don't sum to 1.0", () => {
             mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
             // Make one tunnel invalid
-            mockBetChoiceRate['R1B2_red'] = 0.40; // Now R1B2 sums to 0.95
+            mockBetChoiceRate['r1b2_red'] = 0.40; // Now r1b2 sums to 0.95
             
             expect(() => validateTunnelSpecificProbabilities()).toThrow(
-                /Probabilities for tunnel R1B2 must sum to 1\.0, got: 0\.95/
+                /Probabilities for tunnel r1b2 must sum to 1\.0, got: 0\.95/
             );
         });
 
         it("should throw error with details for invalid tunnel", () => {
             mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
-            mockBetChoiceRate['R3B4_blue'] = 0.50; // Now R3B4 sums to 1.05
+            mockBetChoiceRate['r3b4_blue'] = 0.50; // Now r3b4 sums to 1.05
             
             expect(() => validateTunnelSpecificProbabilities()).toThrow(
                 /Rates: red=0\.45, blue=0\.5, draw=0\.1/
@@ -124,18 +124,18 @@ describe("config-validator (V3)", () => {
 
         it("should detect negative probabilities", () => {
             mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
-            mockBetChoiceRate['R2B3_red'] = -0.05;
-            mockBetChoiceRate['R2B3_blue'] = 0.55; // Adjusting to still sum to 1.0
+            mockBetChoiceRate['r2b3_red'] = -0.05;
+            mockBetChoiceRate['r2b3_blue'] = 0.55; // Adjusting to still sum to 1.0
             
             expect(() => validateTunnelSpecificProbabilities()).toThrow(
-                /Probabilities for tunnel R2B3 must be non-negative/
+                /Probabilities for tunnel r2b3 must be non-negative/
             );
         });
 
         it("should handle small rounding differences within tolerance", () => {
             mockBetChoiceRate = generateValidBetChoiceRate();
-            mockBetChoiceRate['R4B5_red'] = 0.450001;
-            mockBetChoiceRate['R4B5_blue'] = 0.449999;
+            mockBetChoiceRate['r4b5_red'] = 0.450001;
+            mockBetChoiceRate['r4b5_blue'] = 0.449999;
             // Total = 1.00, within tolerance
             
             expect(() => validateTunnelSpecificProbabilities()).not.toThrow();
@@ -149,8 +149,8 @@ describe("config-validator (V3)", () => {
                 validateTunnelSpecificProbabilities();
             } catch (error: any) {
                 // Should mention multiple tunnels
-                expect(error.message).toContain('R1B2');
-                expect(error.message).toContain('R2B1');
+                expect(error.message).toContain('r1b2');
+                expect(error.message).toContain('r2b1');
             }
         });
     });
@@ -163,9 +163,9 @@ describe("config-validator (V3)", () => {
 
         it("should throw error when tunnel keys are missing", () => {
             mockBetChoiceRate = {
-                R1B2_red: 0.45,
-                R1B2_blue: 0.45,
-                R1B2_draw: 0.10,
+                r1b2_red: 0.45,
+                r1b2_blue: 0.45,
+                r1b2_draw: 0.10,
             };
 
             expect(() => validateAllConfigurations()).toThrow(
@@ -241,14 +241,14 @@ describe("config-validator (V3)", () => {
 
         it("should provide helpful error messages for debugging", () => {
             mockBetChoiceRate = generateValidBetChoiceRate(0.45, 0.45, 0.10);
-            mockBetChoiceRate['R5B2_red'] = 0.40; // Make R5B2 invalid
+            mockBetChoiceRate['r5b2_red'] = 0.40; // Make r5b2 invalid
             
             try {
                 validateTunnelSpecificProbabilities();
                 fail('Should have thrown an error');
             } catch (error: any) {
                 // Error should include tunnel name and actual values
-                expect(error.message).toContain('R5B2');
+                expect(error.message).toContain('r5b2');
                 expect(error.message).toContain('red=0.4');
                 expect(error.message).toContain('blue=0.45');
                 expect(error.message).toContain('draw=0.1');

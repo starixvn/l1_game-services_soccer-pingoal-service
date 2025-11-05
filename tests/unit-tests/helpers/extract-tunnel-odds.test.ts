@@ -2,22 +2,22 @@ import { extractTunnelOdds } from "../../../src/helpers";
 
 describe("extractTunnelOdds", () => {
     const mockFlatOdds = {
-        R1B2_red: 2.1,
-        R1B2_blue: 2.1,
-        R1B2_draw: 9.0,
-        R1B3_red: 2.2,
-        R1B3_blue: 2.2,
-        R1B3_draw: 9.5,
-        R2B4_red: 1.9,
-        R2B4_blue: 1.9,
-        R2B4_draw: 8.5,
-        R5B6_red: 2.5,
-        R5B6_blue: 2.5,
-        R5B6_draw: 10.0,
+        r1b2_red: 2.1,
+        r1b2_blue: 2.1,
+        r1b2_draw: 9.0,
+        r1b3_red: 2.2,
+        r1b3_blue: 2.2,
+        r1b3_draw: 9.5,
+        r2b4_red: 1.9,
+        r2b4_blue: 1.9,
+        r2b4_draw: 8.5,
+        r5b6_red: 2.5,
+        r5b6_blue: 2.5,
+        r5b6_draw: 10.0,
     };
 
     describe("Successful extraction", () => {
-        it("should extract correct odds for R1B2 tunnel combination", () => {
+        it("should extract correct odds for r1b2 tunnel combination", () => {
             const result = extractTunnelOdds(mockFlatOdds, 1, 2);
 
             expect(result).toEqual({
@@ -27,7 +27,7 @@ describe("extractTunnelOdds", () => {
             });
         });
 
-        it("should extract correct odds for R1B3 tunnel combination", () => {
+        it("should extract correct odds for r1b3 tunnel combination", () => {
             const result = extractTunnelOdds(mockFlatOdds, 1, 3);
 
             expect(result).toEqual({
@@ -37,7 +37,7 @@ describe("extractTunnelOdds", () => {
             });
         });
 
-        it("should extract correct odds for R2B4 tunnel combination", () => {
+        it("should extract correct odds for r2b4 tunnel combination", () => {
             const result = extractTunnelOdds(mockFlatOdds, 2, 4);
 
             expect(result).toEqual({
@@ -47,7 +47,7 @@ describe("extractTunnelOdds", () => {
             });
         });
 
-        it("should extract correct odds for R5B6 tunnel combination", () => {
+        it("should extract correct odds for r5b6 tunnel combination", () => {
             const result = extractTunnelOdds(mockFlatOdds, 5, 6);
 
             expect(result).toEqual({
@@ -61,34 +61,34 @@ describe("extractTunnelOdds", () => {
     describe("Error handling", () => {
         it("should throw error when red odds is missing", () => {
             const incompleteOdds = {
-                R1B2_blue: 2.1,
-                R1B2_draw: 9.0,
+                r1b2_blue: 2.1,
+                r1b2_draw: 9.0,
             };
 
             expect(() => extractTunnelOdds(incompleteOdds, 1, 2)).toThrow(
-                "Missing odds for tunnel combination R1B2. Expected keys: R1B2_red, R1B2_blue, R1B2_draw"
+                "Missing odds for tunnel combination r1b2. Expected keys: r1b2_red, r1b2_blue, r1b2_draw"
             );
         });
 
         it("should throw error when blue odds is missing", () => {
             const incompleteOdds = {
-                R1B2_red: 2.1,
-                R1B2_draw: 9.0,
+                r1b2_red: 2.1,
+                r1b2_draw: 9.0,
             };
 
             expect(() => extractTunnelOdds(incompleteOdds, 1, 2)).toThrow(
-                "Missing odds for tunnel combination R1B2. Expected keys: R1B2_red, R1B2_blue, R1B2_draw"
+                "Missing odds for tunnel combination r1b2. Expected keys: r1b2_red, r1b2_blue, r1b2_draw"
             );
         });
 
         it("should throw error when draw odds is missing", () => {
             const incompleteOdds = {
-                R1B2_red: 2.1,
-                R1B2_blue: 2.1,
+                r1b2_red: 2.1,
+                r1b2_blue: 2.1,
             };
 
             expect(() => extractTunnelOdds(incompleteOdds, 1, 2)).toThrow(
-                "Missing odds for tunnel combination R1B2. Expected keys: R1B2_red, R1B2_blue, R1B2_draw"
+                "Missing odds for tunnel combination r1b2. Expected keys: r1b2_red, r1b2_blue, r1b2_draw"
             );
         });
 
@@ -96,13 +96,13 @@ describe("extractTunnelOdds", () => {
             const emptyOdds = {};
 
             expect(() => extractTunnelOdds(emptyOdds, 3, 5)).toThrow(
-                "Missing odds for tunnel combination R3B5. Expected keys: R3B5_red, R3B5_blue, R3B5_draw"
+                "Missing odds for tunnel combination r3b5. Expected keys: r3b5_red, r3b5_blue, r3b5_draw"
             );
         });
 
         it("should throw error for non-existent tunnel combination", () => {
             expect(() => extractTunnelOdds(mockFlatOdds, 3, 5)).toThrow(
-                "Missing odds for tunnel combination R3B5. Expected keys: R3B5_red, R3B5_blue, R3B5_draw"
+                "Missing odds for tunnel combination r3b5. Expected keys: r3b5_red, r3b5_blue, r3b5_draw"
             );
         });
     });
@@ -110,9 +110,9 @@ describe("extractTunnelOdds", () => {
     describe("Edge cases", () => {
         it("should handle odds with value 0", () => {
             const oddsWithZero = {
-                R1B2_red: 0,
-                R1B2_blue: 2.1,
-                R1B2_draw: 9.0,
+                r1b2_red: 0,
+                r1b2_blue: 2.1,
+                r1b2_draw: 9.0,
             };
 
             const result = extractTunnelOdds(oddsWithZero, 1, 2);
@@ -126,9 +126,9 @@ describe("extractTunnelOdds", () => {
 
         it("should handle very large odds values", () => {
             const largeOdds = {
-                R1B2_red: 999.99,
-                R1B2_blue: 888.88,
-                R1B2_draw: 1000.0,
+                r1b2_red: 999.99,
+                r1b2_blue: 888.88,
+                r1b2_draw: 1000.0,
             };
 
             const result = extractTunnelOdds(largeOdds, 1, 2);
@@ -142,9 +142,9 @@ describe("extractTunnelOdds", () => {
 
         it("should handle decimal precision", () => {
             const preciseOdds = {
-                R1B2_red: 2.123456,
-                R1B2_blue: 2.654321,
-                R1B2_draw: 9.111111,
+                r1b2_red: 2.123456,
+                r1b2_blue: 2.654321,
+                r1b2_draw: 9.111111,
             };
 
             const result = extractTunnelOdds(preciseOdds, 1, 2);
@@ -160,15 +160,15 @@ describe("extractTunnelOdds", () => {
     describe("Type safety", () => {
         it("should work with all valid tunnel numbers (1-6)", () => {
             const completeOdds = {
-                R1B2_red: 2.0,
-                R1B2_blue: 2.0,
-                R1B2_draw: 9.0,
-                R1B6_red: 2.0,
-                R1B6_blue: 2.0,
-                R1B6_draw: 9.0,
-                R6B1_red: 2.0,
-                R6B1_blue: 2.0,
-                R6B1_draw: 9.0,
+                r1b2_red: 2.0,
+                r1b2_blue: 2.0,
+                r1b2_draw: 9.0,
+                r1b6_red: 2.0,
+                r1b6_blue: 2.0,
+                r1b6_draw: 9.0,
+                r6b1_red: 2.0,
+                r6b1_blue: 2.0,
+                r6b1_draw: 9.0,
             };
 
             expect(() => extractTunnelOdds(completeOdds, 1, 2)).not.toThrow();

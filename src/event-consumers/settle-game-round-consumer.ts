@@ -115,7 +115,7 @@ export default class SettleGameRoundConsumer extends Core.BaseEventConsumers.Set
             // Use admin specified scores
             const redScore = adminResult.red;
             const blueScore = adminResult.blue;
-            const selectedScoreKey = `R${redScore}B${blueScore}`;
+            const selectedScoreKey = `r${redScore}b${blueScore}`;
             
             // Generate complete result using unified logic
             return generateCompleteResult(selections, redScore, blueScore, selectedScoreKey);

@@ -73,9 +73,9 @@ describe("result-helper", () => {
 
             generateResult(mockPlayerSelections, 789);
 
-            // Verify the random functions were called
+            // Verify the random functions were called (V3: outcomes order is red, blue, draw)
             expect(secureWeightedPick).toHaveBeenCalledWith(
-                ["blue", "red", "draw"],
+                ["red", "blue", "draw"],
                 expect.arrayContaining([expect.any(Number), expect.any(Number), expect.any(Number)])
             );
             expect(securePickOne).toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe("result-helper", () => {
             (secureWeightedPick as jest.Mock).mockReturnValue("red");
             (securePickOne as jest.Mock).mockReturnValue("R10B8");
 
-            expect(() => generateResult(invalidSelections, 999)).toThrow("No video configuration found for tunnel: R99B99");
+            expect(() => generateResult(invalidSelections, 999)).toThrow("No video configuration found for tunnel: r99b99");
         });
 
         it("should handle edge case when filterScoresByOutcome returns empty array", () => {
@@ -157,7 +157,7 @@ describe("result-helper", () => {
             (securePickOne as jest.Mock).mockReturnValue("INVALID_FORMAT"); // Invalid format
 
             expect(() => generateResult(selections, 123)).toThrow(
-                "Invalid score key format: INVALID_FORMAT. Expected format: R{number}B{number}"
+                "Invalid score key format: INVALID_FORMAT. Expected format: r{number}b{number}"
             );
         });
 
@@ -184,7 +184,7 @@ describe("result-helper", () => {
 
             (secureWeightedPick as jest.Mock).mockReturnValue("red");
             // Use a score that has video count > 1 from the actual config
-            (securePickOne as jest.Mock).mockReturnValue("R15B7");
+            (securePickOne as jest.Mock).mockReturnValue("r15b7");
             (secureRandomRange as jest.Mock).mockReturnValue(1); // Mock video index selection
 
             const result = generateResult(selections, 123);
@@ -199,7 +199,7 @@ describe("result-helper", () => {
 
             (secureWeightedPick as jest.Mock).mockReturnValue("red");
             // Use a score format that doesn't exist in the config
-            (securePickOne as jest.Mock).mockReturnValue("R999B999");
+            (securePickOne as jest.Mock).mockReturnValue("r999b999");
 
             const result = generateResult(selections, 123);
 
@@ -354,7 +354,7 @@ describe("result-helper", () => {
 
             // This should trigger the error path where scoreMatch is null
             expect(() => generateResult(selections, 123)).toThrow(
-                "Invalid score key format: INVALID_SCORE_FORMAT. Expected format: R{number}B{number}"
+                "Invalid score key format: INVALID_SCORE_FORMAT. Expected format: r{number}b{number}"
             );
         });
 
@@ -401,10 +401,10 @@ describe("result-helper", () => {
 
             // Create a mock configuration that only has "blue" winning scores
             const mockVideoConfig = {
-                R1B2: {
-                    R5B10: 1, // Blue wins (5 < 10)
-                    R3B8: 1, // Blue wins (3 < 8)
-                    R4B12: 1, // Blue wins (4 < 12)
+                r1b2: {
+                    r5b10: 1, // Blue wins (5 < 10)
+                    r3b8: 1, // Blue wins (3 < 8)
+                    r4b12: 1, // Blue wins (4 < 12)
                     // No red wins or draws - this will cause validScores.length === 0 for 'red' or 'draw' outcomes
                 },
             };
@@ -432,7 +432,7 @@ describe("result-helper", () => {
                 // This should trigger the "No valid scores found" error
                 // The exact outcome might be undefined due to mocking complexity,
                 // but the important part is that we hit the validScores.length === 0 path
-                expect(() => mockedGenerateResult(selections, 123)).toThrow("No valid scores found for R1B2 with outcome:");
+                expect(() => mockedGenerateResult(selections, 123)).toThrow("No valid scores found for r1b2 with outcome:");
             } finally {
                 // Clean up mocks
                 jest.dontMock("../../../src/constants");
@@ -443,43 +443,43 @@ describe("result-helper", () => {
 
     describe("classifyScore", () => {
         it("should return 'red' when red score is higher", () => {
-            expect(classifyScore("R15B10")).toBe("red");
-            expect(classifyScore("R1B0")).toBe("red");
-            expect(classifyScore("R100B50")).toBe("red");
+            expect(classifyScore("r15b10")).toBe("red");
+            expect(classifyScore("r1b0")).toBe("red");
+            expect(classifyScore("r100b50")).toBe("red");
         });
 
         it("should return 'blue' when blue score is higher", () => {
-            expect(classifyScore("R8B12")).toBe("blue");
-            expect(classifyScore("R0B1")).toBe("blue");
-            expect(classifyScore("R25B30")).toBe("blue");
+            expect(classifyScore("r8b12")).toBe("blue");
+            expect(classifyScore("r0b1")).toBe("blue");
+            expect(classifyScore("r25b30")).toBe("blue");
         });
 
         it("should return 'draw' when scores are equal", () => {
-            expect(classifyScore("R10B10")).toBe("draw");
-            expect(classifyScore("R0B0")).toBe("draw");
-            expect(classifyScore("R15B15")).toBe("draw");
+            expect(classifyScore("r10b10")).toBe("draw");
+            expect(classifyScore("r0b0")).toBe("draw");
+            expect(classifyScore("r15b15")).toBe("draw");
         });
 
         it("should return null for invalid score format", () => {
             // Test the if (!match) condition - this is the uncovered part
             expect(classifyScore("INVALID_FORMAT")).toBe(null);
-            expect(classifyScore("R10")).toBe(null);
-            expect(classifyScore("B10")).toBe(null);
-            expect(classifyScore("10B10")).toBe(null);
-            expect(classifyScore("R10B")).toBe(null);
-            expect(classifyScore("RaB10")).toBe(null);
-            expect(classifyScore("R10Bb")).toBe(null);
+            expect(classifyScore("r10")).toBe(null);
+            expect(classifyScore("b10")).toBe(null);
+            expect(classifyScore("10b10")).toBe(null);
+            expect(classifyScore("r10b")).toBe(null);
+            expect(classifyScore("rab10")).toBe(null);
+            expect(classifyScore("r10bb")).toBe(null);
             expect(classifyScore("")).toBe(null);
-            expect(classifyScore("RB")).toBe(null);
+            expect(classifyScore("rb")).toBe(null);
             expect(classifyScore("random_string")).toBe(null);
-            expect(classifyScore("R-5B10")).toBe(null); // Negative numbers
-            expect(classifyScore("R10B-3")).toBe(null); // Negative numbers
+            expect(classifyScore("r-5b10")).toBe(null); // Negative numbers
+            expect(classifyScore("r10b-3")).toBe(null); // Negative numbers
         });
 
         it("should handle edge cases with valid format", () => {
-            expect(classifyScore("R999B999")).toBe("draw");
-            expect(classifyScore("R1000B0")).toBe("red");
-            expect(classifyScore("R0B1000")).toBe("blue");
+            expect(classifyScore("r999b999")).toBe("draw");
+            expect(classifyScore("r1000b0")).toBe("red");
+            expect(classifyScore("r0b1000")).toBe("blue");
         });
     });
 

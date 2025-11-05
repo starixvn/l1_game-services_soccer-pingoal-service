@@ -23,11 +23,17 @@ interface PlayerTunnelSelections {
 }
 
 /**
- * Determines game outcome using BET_CHOICE_RATE probabilities
+ * Determines game outcome using tunnel-specific BET_CHOICE_RATE probabilities (V3)
+ * @param tunnelKey - Tunnel combination (e.g., "R1B2")
+ * @returns Selected game outcome based on tunnel-specific probabilities
  */
-const selectGameOutcome = (): GameOutcome => {
-    const outcomes: GameOutcome[] = Object.values(constants.BET_CHOICES) as GameOutcome[];
-    const weights = outcomes.map((outcome) => constants.BET_CHOICE_RATE[outcome]);
+const selectGameOutcome = (tunnelKey: string): GameOutcome => {
+    const outcomes: GameOutcome[] = ['red', 'blue', 'draw'];
+    
+    // Get tunnel-specific rates using flat structure
+    const weights = outcomes.map((outcome) => 
+        constants.getBetChoiceRate(tunnelKey, outcome as constants.Outcome)
+    );
 
     return secureWeightedPick(outcomes, weights) as GameOutcome;
 };
@@ -36,7 +42,7 @@ const selectGameOutcome = (): GameOutcome => {
  * Classifies score key by outcome type
  */
 export const classifyScore = (scoreKey: string): GameOutcome | null => {
-    const match = scoreKey.match(/^R(\d+)B(\d+)$/);
+    const match = scoreKey.match(/^r(\d+)b(\d+)$/i);
     if (!match) {
         return null;
     }
@@ -67,7 +73,7 @@ const filterScoresByOutcome = (availableScores: Record<string, number>, targetOu
 };
 
 /**
- * Generates game score based on two-stage selection process
+ * Generates game score based on two-stage selection process (V3 - Tunnel-Specific)
  */
 const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueScore: number; selectedScoreKey: string } => {
     // Get available scores for this tunnel combination
@@ -77,8 +83,8 @@ const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueSc
         throw new Error(`No video configuration found for tunnel: ${tunnelKey}`);
     }
 
-    // Stage 1: Select game outcome using BET_CHOICE_RATE
-    const selectedOutcome = selectGameOutcome();
+    // Stage 1: Select game outcome using tunnel-specific BET_CHOICE_RATE
+    const selectedOutcome = selectGameOutcome(tunnelKey);
 
     // Stage 2: Filter scores by selected outcome
     const validScores = filterScoresByOutcome(availableScores, selectedOutcome);
@@ -90,10 +96,10 @@ const generateScoreFromOutcome = (tunnelKey: string): { redScore: number; blueSc
     // Stage 3: Randomly select one valid score
     const selectedScoreKey = securePickOne(validScores);
 
-    // Parse the selected score key (e.g., "R13B12" -> red=13, blue=12)
-    const scoreMatch = selectedScoreKey.match(/^R(\d+)B(\d+)$/);
+    // Parse the selected score key (e.g., "r13b12" -> red=13, blue=12)
+    const scoreMatch = selectedScoreKey.match(/^r(\d+)b(\d+)$/i);
     if (!scoreMatch) {
-        throw new Error(`Invalid score key format: ${selectedScoreKey}. Expected format: R{number}B{number}`);
+        throw new Error(`Invalid score key format: ${selectedScoreKey}. Expected format: r{number}b{number}`);
     }
 
     const redScore = parseInt(scoreMatch[1], 10);
@@ -126,11 +132,12 @@ const generateVideoIndex = (tunnelKey: string, selectedScoreKey: string): number
  * Generates tunnel key from player selections
  */
 const generateTunnelKey = (playerSelections: PlayerTunnelSelections): string => {
-    return `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}`;
+    return `r${playerSelections.redTunnel}b${playerSelections.blueTunnel}`;
 };
 
 /**
  * Generates video name hash from tunnel and score information
+ * NOTE: Video file paths must use UPPERCASE format (R1B2) to match existing video files
  */
 const generateVideoName = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, videoIndex: number): string => {
     const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;

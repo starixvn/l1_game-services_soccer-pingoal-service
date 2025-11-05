@@ -1,6 +1,13 @@
 import ProcessBetQueue from "../../../src/crons/process-bet-queue";
 import SettleGameRoundConsumer from "../../../src/event-consumers/settle-game-round-consumer";
 import type { Socket } from "socket.io";
+import * as helpers from "../../../src/helpers";
+
+// Mock the helpers module
+jest.mock("../../../src/helpers", () => ({
+    ...jest.requireActual("../../../src/helpers"),
+    extractTunnelOdds: jest.fn(),
+}));
 
 // Mock the sc-game-base module
 jest.mock("sc-game-base", () => ({
@@ -8,8 +15,10 @@ jest.mock("sc-game-base", () => ({
         Crons: {
             ProcessBetQueue: class MockProcessBetQueue {
                 gameData: any;
+                betsRepository: any;
                 constructor(dependencies: any) {
-                    this.gameData = { roundId: 100 };
+                    this.gameData = { roundId: 100, gameConfigs: { odds: {} } };
+                    this.betsRepository = dependencies.betsRepository;
                 }
                 async handleSuccessBet(...args: any[]): Promise<void> {
                     // Mock implementation
@@ -52,6 +61,7 @@ interface Player {
 describe("ProcessBetQueue", () => {
     let processBetQueue: ProcessBetQueue;
     let mockRoundsRepository: any;
+    let mockBetsRepository: any;
     let mockSettleGameRoundConsumer: any;
     let mockDependencies: any;
 
@@ -66,6 +76,11 @@ describe("ProcessBetQueue", () => {
             }),
         };
 
+        // Mock betsRepository
+        mockBetsRepository = {
+            updateOne: jest.fn().mockResolvedValue({}),
+        };
+
         // Mock SettleGameRoundConsumer
         mockSettleGameRoundConsumer = {
             setPlayerTunnelSelections: jest.fn(),
@@ -76,9 +91,23 @@ describe("ProcessBetQueue", () => {
         mockDependencies = {
             settleGameRoundConsumer: mockSettleGameRoundConsumer,
             roundsRepository: mockRoundsRepository,
+            betsRepository: mockBetsRepository,
         };
 
         processBetQueue = new ProcessBetQueue(mockDependencies);
+        processBetQueue.gameData = {
+            roundId: 100,
+            gameConfigs: {
+                odds: {
+                    R1B2_red: 2.1,
+                    R1B2_blue: 2.1,
+                    R1B2_draw: 9.0,
+                    R1B3_red: 2.2,
+                    R1B3_blue: 2.2,
+                    R1B3_draw: 9.5,
+                },
+            },
+        };
 
         // Reset console mocks
         jest.clearAllMocks();
@@ -231,6 +260,160 @@ describe("ProcessBetQueue", () => {
                     }
                 );
             }
+        });
+    });
+
+    describe("upsertBet", () => {
+        let mockPlayer: Player;
+        let mockBet: BetPayload;
+        let roundId: number;
+        let rate: number;
+
+        beforeEach(() => {
+            mockPlayer = {
+                UID: "player123",
+                profile: {
+                    name: "TestPlayer",
+                    minBet: 10,
+                    maxBet: 1000,
+                },
+                socketClient: {} as Socket,
+                session: {
+                    siteId: "site1",
+                    currencyName: "USD",
+                    operatorId: "op1",
+                    playerId: "p123",
+                },
+            };
+
+            mockBet = {
+                amount: 100,
+                betChoice: "blue",
+                freeBet: false,
+                roundId: 123,
+                mode: "single",
+                receivedTime: new Date(),
+                redTunnel: 1,
+                blueTunnel: 2,
+            };
+
+            roundId = 123;
+            rate = 1.0;
+
+            // Mock extractTunnelOdds
+            (helpers.extractTunnelOdds as jest.Mock).mockReturnValue({
+                red: 2.1,
+                blue: 2.1,
+                draw: 9.0,
+            });
+        });
+
+        it("should extract tunnel-specific odds and store them", async () => {
+            await processBetQueue.upsertBet(mockPlayer, roundId, mockBet, rate);
+
+            // Verify extractTunnelOdds was called with correct parameters
+            expect(helpers.extractTunnelOdds).toHaveBeenCalledWith(
+                processBetQueue.gameData.gameConfigs.odds,
+                mockBet.redTunnel,
+                mockBet.blueTunnel
+            );
+
+            // Verify betsRepository.updateOne was called
+            expect(mockBetsRepository.updateOne).toHaveBeenCalledWith(
+                { uid: "player123", roundId: 123, freeBet: false },
+                {
+                    $inc: { blue: 100, totalAmount: 100 },
+                    $setOnInsert: expect.objectContaining({
+                        uid: "player123",
+                        name: "TestPlayer",
+                        odds: { red: 2.1, blue: 2.1, draw: 9.0 },
+                        freeBet: false,
+                        roundId: 123,
+                        redTunnel: 1,
+                        blueTunnel: 2,
+                        siteId: "site1",
+                        currency: "USD",
+                        rate: 1.0,
+                        operatorId: "op1",
+                        playerId: "p123",
+                    }),
+                },
+                { upsert: true, setDefaultsOnInsert: true }
+            );
+        });
+
+        it("should store tunnel selections in bet record", async () => {
+            await processBetQueue.upsertBet(mockPlayer, roundId, mockBet, rate);
+
+            const updateCall = mockBetsRepository.updateOne.mock.calls[0];
+            const newBetData = updateCall[1].$setOnInsert;
+
+            expect(newBetData).toHaveProperty("redTunnel", 1);
+            expect(newBetData).toHaveProperty("blueTunnel", 2);
+        });
+
+        it("should work with different tunnel combinations", async () => {
+            const testCases = [
+                { redTunnel: 1, blueTunnel: 3, expectedOdds: { red: 2.2, blue: 2.2, draw: 9.5 } },
+                { redTunnel: 2, blueTunnel: 5, expectedOdds: { red: 2.5, blue: 2.5, draw: 10.0 } },
+            ];
+
+            for (const testCase of testCases) {
+                jest.clearAllMocks();
+                (helpers.extractTunnelOdds as jest.Mock).mockReturnValue(testCase.expectedOdds);
+
+                const testBet = { ...mockBet, redTunnel: testCase.redTunnel, blueTunnel: testCase.blueTunnel };
+                await processBetQueue.upsertBet(mockPlayer, roundId, testBet, rate);
+
+                expect(helpers.extractTunnelOdds).toHaveBeenCalledWith(
+                    processBetQueue.gameData.gameConfigs.odds,
+                    testCase.redTunnel,
+                    testCase.blueTunnel
+                );
+
+                const updateCall = mockBetsRepository.updateOne.mock.calls[0];
+                const newBetData = updateCall[1].$setOnInsert;
+
+                expect(newBetData.odds).toEqual(testCase.expectedOdds);
+                expect(newBetData.redTunnel).toBe(testCase.redTunnel);
+                expect(newBetData.blueTunnel).toBe(testCase.blueTunnel);
+            }
+        });
+
+        it("should handle extractTunnelOdds errors", async () => {
+            (helpers.extractTunnelOdds as jest.Mock).mockImplementation(() => {
+                throw new Error("Missing odds for tunnel combination R1B2");
+            });
+
+            await expect(processBetQueue.upsertBet(mockPlayer, roundId, mockBet, rate)).rejects.toThrow(
+                "Missing odds for tunnel combination R1B2"
+            );
+        });
+
+        it("should include clientSeed when provided", async () => {
+            const betWithClientSeed = { ...mockBet, clientSeed: "test-seed-123" };
+            await processBetQueue.upsertBet(mockPlayer, roundId, betWithClientSeed, rate);
+
+            const updateCall = mockBetsRepository.updateOne.mock.calls[0];
+            const newBetData = updateCall[1].$setOnInsert;
+
+            expect(newBetData.clientSeed).toBe("test-seed-123");
+        });
+
+        it("should work without player session", async () => {
+            const playerWithoutSession = {
+                ...mockPlayer,
+                session: undefined,
+            };
+
+            await processBetQueue.upsertBet(playerWithoutSession, roundId, mockBet, rate);
+
+            const updateCall = mockBetsRepository.updateOne.mock.calls[0];
+            const newBetData = updateCall[1].$setOnInsert;
+
+            expect(newBetData).not.toHaveProperty("siteId");
+            expect(newBetData).not.toHaveProperty("currency");
+            expect(newBetData).not.toHaveProperty("rate");
         });
     });
 

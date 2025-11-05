@@ -137,9 +137,10 @@ const generateTunnelKey = (playerSelections: PlayerTunnelSelections): string => 
 
 /**
  * Generates video name hash from tunnel and score information
+ * NOTE: Video file paths must use UPPERCASE format (R1B2) to match existing video files
  */
 const generateVideoName = (playerSelections: PlayerTunnelSelections, redScore: number, blueScore: number, videoIndex: number): string => {
-    const rawVideoName = `r${playerSelections.redTunnel}b${playerSelections.blueTunnel}-r${redScore}b${blueScore}-${videoIndex}`;
+    const rawVideoName = `R${playerSelections.redTunnel}B${playerSelections.blueTunnel}-R${redScore}B${blueScore}-${videoIndex}`;
     const videoName = crypto.createHash("sha256").update(`${rawVideoName}`).digest("hex");
     return `${videoName}.m3u8`;
 };
